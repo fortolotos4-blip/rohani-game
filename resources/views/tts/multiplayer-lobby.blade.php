@@ -1,0 +1,25 @@
+@extends('layouts.app')
+
+@section('content')
+<div class="max-w-md mx-auto p-6 bg-white shadow rounded">
+
+<h2 class="font-bold text-xl mb-4">Multiplayer TTS</h2>
+
+<form method="POST" action="/tts/room/create">
+@csrf
+<input name="player" class="border p-2 w-full mb-2" placeholder="Nama">
+<input type="hidden" name="puzzle_id" value="1">
+<button class="bg-green-600 text-white w-full py-2">Buat Room</button>
+</form>
+
+<hr class="my-4">
+
+<form method="POST" action="/tts/room/join">
+@csrf
+<input name="player" class="border p-2 w-full mb-2" placeholder="Nama">
+<input name="room_code" class="border p-2 w-full mb-2" placeholder="Kode Room">
+<button class="bg-blue-600 text-white w-full py-2">Gabung</button>
+</form>
+
+</div>
+@endsection

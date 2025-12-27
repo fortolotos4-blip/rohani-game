@@ -56,7 +56,9 @@
 
     <div class="flex justify-center mb-4">
     <img 
-        :src="currentQuestion && currentQuestion.image_path ? '/storage/' + currentQuestion.image_path : '/images/placeholder.png'"
+        ::src="currentQuestion && currentQuestion.image_path 
+      ? '/' + currentQuestion.image_path 
+      : '/images/placeholder.png'"
         class="max-h-72 w-auto object-contain rounded-lg shadow-md"
     />
 </div>

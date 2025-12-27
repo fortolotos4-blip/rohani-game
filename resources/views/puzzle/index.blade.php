@@ -220,7 +220,7 @@ function puzzleApp(){
       const top = Math.floor(idx / this.gridSize) * size;
       const cell = this.cells[idx];
       // if null (blank) we hide but tileStyle called only for visible cells
-      const bgUrl = this.selectedImage ? `/storage/${this.selectedImage}` : '/images/placeholder.png';
+const bgUrl = this.selectedImage ? `/${this.selectedImage}` : '/images/placeholder.png';
       // compute background position using tile number (cell)
       // each tile shows portion corresponding to its correct position (cell)
       const total = this.gridSize;

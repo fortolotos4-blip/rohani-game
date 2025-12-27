@@ -16,17 +16,18 @@ class QuizController extends Controller
 
     // transform data agar view menerima array of objects
     $payload = $questions->map(function($q){
-        return [
-            'id' => $q->id,
-            'prompt' => $q->prompt,
-            'image_path' => $q->image_path,
-            'time_limit_seconds' => $q->time_limit_seconds,
-            'choices' => $q->choices->map(function($c){
-                return ['id'=>$c->id, 'text'=>$c->text];
-            })->values(),
-            'explanation' => $q->explanation,
-        ];
-    })->toArray(); // <-- PENTING: jadi array, bukan JSON string
+    return [
+        'id' => $q->id,
+        'prompt' => $q->prompt,
+        'image_url' => $q->image_path ? asset($q->image_path) : null,
+        'time_limit_seconds' => $q->time_limit_seconds,
+        'choices' => $q->choices->map(function($c){
+            return ['id'=>$c->id, 'text'=>$c->text];
+        })->values(),
+        'explanation' => $q->explanation,
+    ];
+})->toArray();
+ // <-- PENTING: jadi array, bukan JSON string
 
     return view('quiz.index', [
         'questions' => $payload, // kirim array ke view

@@ -15,28 +15,26 @@ RUN apt-get update && apt-get install -y \
 RUN a2enmod rewrite
 
 # Install PHP extensions
-RUN docker-php-ext-install pdo pdo_mysql zip gd mbstring
+RUN docker-php-ext-install pdo pdo_mysql pdo_pgsql zip gd mbstring
 
 # Set working directory
 WORKDIR /var/www/html
 
 # Copy project
-COPY . /var/www/html
+COPY . .
 
-# Set permissions
-RUN chown -R www-data:www-data /var/www/html \
-    && chmod -R 775 /var/www/html/storage \
-    && chmod -R 775 /var/www/html/bootstrap/cache
-
-# Install Composer (compatible with PHP 7.4)
+# Install Composer
 COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 RUN composer install --no-dev --optimize-autoloader
 
+# Set permissions
+RUN chown -R www-data:www-data storage bootstrap/cache
+
 # Laravel public folder
 ENV APACHE_DOCUMENT_ROOT /var/www/html/public
-
 RUN sed -ri 's!/var/www/html!/var/www/html/public!g' \
     /etc/apache2/sites-available/*.conf \
     /etc/apache2/apache2.conf
 
-EXPOSE 80
+# 🚨 AUTO MIGRATE (INI KUNCI DI RENDER FREE)
+CMD php artisan migrate --force && apache2-foreground

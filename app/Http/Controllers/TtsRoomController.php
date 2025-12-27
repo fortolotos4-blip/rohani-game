@@ -19,14 +19,15 @@ class TtsRoomController extends Controller
         $code = strtoupper(Str::random(6));
 
         DB::table('tts_rooms')->insert([
-            'room_code' => $code,
-            'player1' => $request->player,
-            'status' => 'waiting',
-            'player1_score' => 0,
-            'player2_score' => 0,
-            'created_at' => now(),
-            'updated_at' => now(),
-        ]);
+        'room_code' => $code,
+        'player1' => $request->player,
+        'puzzle_id' => 0, // 🔥 DUMMY AMAN
+        'status' => 'waiting',
+        'player1_score' => 0,
+        'player2_score' => 0,
+        'created_at' => now(),
+        'updated_at' => now(),
+    ]);
 
         return redirect()->route('tts.room.play', [
             'code' => $code,

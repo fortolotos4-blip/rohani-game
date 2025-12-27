@@ -13,15 +13,24 @@ class TtsRoomController extends Controller
        CREATE ROOM
     ========================== */
     public function create(Request $request)
-    {
-        $request->validate(['player' => 'required|string']);
+{
+    $request->validate([
+        'player' => 'required|string'
+    ]);
 
-        $code = strtoupper(Str::random(6));
+    $code = strtoupper(Str::random(6));
 
-        DB::table('tts_rooms')->insert([
+    // 🔒 GUARD: pastikan ada puzzle di tts_puzzles
+    $puzzleId = DB::table('tts_puzzles')->min('id');
+
+    if (!$puzzleId) {
+        abort(500, 'No base puzzle found in database');
+    }
+
+    DB::table('tts_rooms')->insert([
         'room_code' => $code,
         'player1' => $request->player,
-        'puzzle_id' => 0, // 🔥 DUMMY AMAN
+        'puzzle_id' => $puzzleId, // hanya untuk memenuhi FK
         'status' => 'waiting',
         'player1_score' => 0,
         'player2_score' => 0,
@@ -29,11 +38,12 @@ class TtsRoomController extends Controller
         'updated_at' => now(),
     ]);
 
-        return redirect()->route('tts.room.play', [
-            'code' => $code,
-            'player' => $request->player
-        ]);
-    }
+    return redirect()->route('tts.room.play', [
+        'code' => $code,
+        'player' => $request->player
+    ]);
+}
+
 
     /* =========================
        JOIN ROOM

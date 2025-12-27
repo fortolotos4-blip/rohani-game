@@ -289,8 +289,7 @@ function ttsMultiplayer(){
       fetch(`/tts/room/${this.roomCode}/rps`,{
         method:'POST',
         headers:{
-          'Content-Type':'application/json',
-          'X-CSRF-TOKEN':'{{ csrf_token() }}'
+          'Content-Type':'application/json'
         },
         body:JSON.stringify({player:this.myName,choice})
       })
@@ -393,8 +392,7 @@ function ttsMultiplayer(){
   fetch(`/tts/room/${this.roomCode}/check-word`, {
     method: 'POST',
     headers: {
-      'Content-Type': 'application/json',
-      'X-CSRF-TOKEN': '{{ csrf_token() }}'
+      'Content-Type': 'application/json'
     },
     body: JSON.stringify({
       word_index: i,

@@ -1,17 +1,20 @@
 #!/bin/bash
 
-echo "🚀 Starting Laravel..."
+echo "🚀 Starting Laravel setup..."
 
-# generate key kalau belum ada
-php artisan key:generate --force || true
+# ❌ JANGAN generate key di Render
+echo "🔑 APP_KEY from environment (skip key:generate)"
 
-# migrate database (AMAN, tidak hapus data)
+# migrate (aman)
 php artisan migrate --force || true
 
-# buat storage symlink (AMAN kalau sudah ada)
+# seed (kalau sudah idempotent)
+php artisan db:seed --force || true
+
+# storage link (PENTING UNTUK GAMBAR)
 php artisan storage:link || true
 
-# clear & rebuild cache
+# clear cache
 php artisan config:clear
 php artisan cache:clear
 php artisan route:clear

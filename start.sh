@@ -1,26 +1,24 @@
 #!/bin/bash
+set -e
 
-echo "🚀 Starting Laravel setup..."
+echo "🚀 Starting Laravel (Render-safe)..."
 
-# ❌ JANGAN generate key di Render
-echo "🔑 APP_KEY from environment (skip key:generate)"
+# ❌ JANGAN generate key (Render pakai ENV)
+echo "ℹ️ Using APP_KEY from Render Environment"
 
-# migrate (aman)
+# migrate & seed aman
 php artisan migrate --force || true
-
-# seed (kalau sudah idempotent)
 php artisan db:seed --force || true
 
-# storage link (PENTING UNTUK GAMBAR)
+# 🔥 INI YANG PALING PENTING
 php artisan storage:link || true
 
 # clear cache
 php artisan config:clear
-php artisan cache:clear
 php artisan route:clear
 php artisan view:clear
+php artisan cache:clear
 
 echo "✅ Laravel ready"
 
-# start apache
 apache2-foreground

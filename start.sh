@@ -1,29 +1,17 @@
 #!/bin/bash
-set -e
 
-echo "🚀 Starting Laravel setup..."
+echo "🚀 Starting Laravel..."
 
-# Generate APP_KEY hanya jika kosong
-if [ -z "$APP_KEY" ]; then
-  echo "🔑 Generating APP_KEY..."
-  php artisan key:generate --force
-else
-  echo "🔑 APP_KEY already set"
-fi
+# generate key kalau belum ada
+php artisan key:generate --force || true
 
-# Permissions
-chown -R www-data:www-data storage bootstrap/cache
-chmod -R 775 storage bootstrap/cache
+# migrate database (AMAN, tidak hapus data)
+php artisan migrate --force || true
 
-# Migrate database
-echo "🗄️ Running migrations..."
-php artisan migrate --force
+# buat storage symlink (AMAN kalau sudah ada)
+php artisan storage:link || true
 
-# Seed database
-echo "🌱 Seeding database..."
-php artisan db:seed --force
-
-# Clear cache
+# clear & rebuild cache
 php artisan config:clear
 php artisan cache:clear
 php artisan route:clear
@@ -31,5 +19,5 @@ php artisan view:clear
 
 echo "✅ Laravel ready"
 
-# Start Apache
+# start apache
 apache2-foreground

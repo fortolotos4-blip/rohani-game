@@ -8,175 +8,49 @@ class TtsWordsSeeder extends Seeder
     public function run()
     {
         $words = [
-            [
-                'word' => 'YESUS',
-                'clue' => 'Tokoh utama dalam Injil',
-                'category' => 'tokoh',
-                'difficulty' => 'easy',
-            ],
-            [
-                'word' => 'DAUD',
-                'clue' => 'Raja Israel yang mengalahkan Goliat',
-                'category' => 'tokoh',
-                'difficulty' => 'easy',
-            ],
-            [
-                'word' => 'MUSA',
-                'clue' => 'Pemimpin Israel keluar dari Mesir',
-                'category' => 'tokoh',
-                'difficulty' => 'easy',
-            ],
-            [
-                'word' => 'RAJA',
-                'clue' => 'Pemimpin kerajaan',
-                'category' => 'konsep',
-                'difficulty' => 'easy',
-            ],
-            [
-                'word' => 'NABI',
-                'clue' => 'Utusan Tuhan',
-                'category' => 'konsep',
-                'difficulty' => 'easy',
-            ],
-            [
-                'word' => 'MARTA',
-                'clue' => 'Saudara Perempuan Maria dari Betania',
-                'category' => 'tokoh',
-                'difficulty' => 'easy',
-            ],
-            [
-                'word' => 'WAHYU',
-                'clue' => 'Alkitab Perjanjian Baru yang menceritakan Akhir Jaman',
-                'category' => 'konsep',
-                'difficulty' => 'easy',
-            ],
-            [
-                'word' => 'HENOKH',
-                'clue' => 'Seorang tokoh perjanjian lama yang diangkat Tuhan karena hidupnya berkenan kepada Allah',
-                'category' => 'tokoh',
-                'difficulty' => 'easy',
-            ],
-            [
-                'word' => 'OBAJA',
-                'clue' => 'Menceritakan nubuat Allah tentang penghakiman atas bangsa Edom',
-                'category' => 'konsep',
-                'difficulty' => 'easy',
-            ],
-            [
-                'word' => 'DOA',
-                'clue' => 'Berkomunikasi dengan Tuhan',
-                'category' => 'konsep',
-                'difficulty' => 'easy',
-            ],
-            [
-                'word' => 'KANAAN',
-                'clue' => 'Tanah perjanjian yang diberikan kepada bangsa Israel',
-                'category' => 'konsep',
-                'difficulty' => 'easy',
-            ],
-            [
-                'word' => 'IMAN',
-                'clue' => 'Kepercayaan dalam diri seseorang terhadap Tuhan',
-                'category' => 'konsep',
-                'difficulty' => 'easy',
-            ],
-            [
-                'word' => 'YOHANES',
-                'clue' => 'Yang membaptis Yesus di sungai yordan',
-                'category' => 'tokoh',
-                'difficulty' => 'medium',
-            ],
-            [
-                'word' => 'NAAMAN',
-                'clue' => 'Panglima raja aram yang disembuhkan kusta nya',
-                'category' => 'tokoh',
-                'difficulty' => 'medium',
-            ],
-            [
-                'word' => 'HIZKIA',
-                'clue' => 'Seorang tokoh yang diperpanjang umurnya 15 tahun oleh Tuhan dari permohonan doa',
-                'category' => 'tokoh',
-                'difficulty' => 'medium',
-            ],
-            [
-                'word' => 'DEBORA',
-                'clue' => 'Seorang tokoh yang diceritakan di perjanjian lama sebagai Hakim dan pemimpin militer wanita',
-                'category' => 'tokoh',
-                'difficulty' => 'medium',
-            ],
-            [
-                'word' => 'KASIH',
-                'clue' => 'Hukum yang terutama tertulis di alkitab perjanjian baru (Matius)',
-                'category' => 'konsep',
-                'difficulty' => 'medium',
-            ],
-            [
-                'word' => 'LEWI',
-                'clue' => 'Suku yang dipilih Tuhan untuk mengurus perbendaharaan dan pelayanan Tuhan',
-                'category' => 'konsep',
-                'difficulty' => 'medium',
-            ],
-            [
-                'word' => 'YOSUA',
-                'clue' => 'Seorang tokoh yang menggantikan musa saat membawa bangsa israel menuju tanah perjanjian',
-                'category' => 'tokoh',
-                'difficulty' => 'medium',
-            ],
-            [
-                'word' => 'KALEB',
-                'clue' => 'Seorang tokoh yang di izinkan masuk ke tanah perjanjian',
-                'category' => 'tokoh',
-                'difficulty' => 'medium',
-            ],
-            [
-                'word' => 'NAZARET',
-                'clue' => 'Sebuah kota kecil sebagai tempat asal dan tinggal Yesus saat berada di bumi',
-                'category' => 'tokoh',
-                'difficulty' => 'hard',
-            ],
-            [
-                'word' => 'NABOT',
-                'clue' => 'Seorang warga Yizreel mempunyai kebun anggur yang di ingini oleh raja Ahab',
-                'category' => 'tokoh',
-                'difficulty' => 'hard',
-            ],
-            [
-                'word' => 'ESTER',
-                'clue' => 'Perempuan Yahudi yang diangkat menjadi Ratu oleh raja Ahasuerus',
-                'category' => 'tokoh',
-                'difficulty' => 'hard',
-            ],
-            [
-                'word' => 'KERIT',
-                'clue' => 'Sungai yang ditunjukan Tuhan kepada Elia untuk memelihara hidupnya',
-                'category' => 'konsep',
-                'difficulty' => 'hard',
-            ],
-            [
-                'word' => 'ROH',
-                'clue' => 'Buah yang diajarkan Tuhan untuk membentuk karakter Allah pada seseorang',
-                'category' => 'konsep',
-                'difficulty' => 'hard',
-            ],
-            [
-                'word' => 'HAGAI',
-                'clue' => 'Seorang nabi yang diutus untuk membangun kembali Bait Suci Tuhan di Yerusalem',
-                'category' => 'tokoh',
-                'difficulty' => 'hard',
-            ],
-            // 🔥 TAMBAH TERUS DI SINI
+            ['YESUS', 'Tokoh utama dalam Injil', 'tokoh', 'easy'],
+            ['DAUD', 'Raja Israel yang mengalahkan Goliat', 'tokoh', 'easy'],
+            ['MUSA', 'Pemimpin Israel keluar dari Mesir', 'tokoh', 'easy'],
+            ['RAJA', 'Pemimpin kerajaan', 'konsep', 'easy'],
+            ['NABI', 'Utusan Tuhan', 'konsep', 'easy'],
+            ['MARTA', 'Saudara perempuan Maria dari Betania', 'tokoh', 'easy'],
+            ['WAHYU', 'Kitab PB tentang akhir zaman', 'konsep', 'easy'],
+            ['HENOKH', 'Tokoh PL yang diangkat Tuhan', 'tokoh', 'easy'],
+            ['OBAJA', 'Kitab tentang nubuat atas Edom', 'konsep', 'easy'],
+            ['DOA', 'Berkomunikasi dengan Tuhan', 'konsep', 'easy'],
+            ['KANAAN', 'Tanah perjanjian Israel', 'konsep', 'easy'],
+            ['IMAN', 'Kepercayaan kepada Tuhan', 'konsep', 'easy'],
+
+            ['YOHANES', 'Yang membaptis Yesus', 'tokoh', 'medium'],
+            ['NAAMAN', 'Panglima Aram yang disembuhkan', 'tokoh', 'medium'],
+            ['HIZKIA', 'Raja yang diperpanjang umurnya', 'tokoh', 'medium'],
+            ['DEBORA', 'Hakim dan pemimpin wanita Israel', 'tokoh', 'medium'],
+            ['KASIH', 'Hukum terutama dalam PB', 'konsep', 'medium'],
+            ['LEWI', 'Suku pelayanan Tuhan', 'konsep', 'medium'],
+            ['YOSUA', 'Penerus Musa', 'tokoh', 'medium'],
+            ['KALEB', 'Tokoh yang masuk tanah perjanjian', 'tokoh', 'medium'],
+
+            ['NAZARET', 'Kota asal Yesus', 'konsep', 'hard'],
+            ['NABOT', 'Pemilik kebun anggur yang dirampas Ahab', 'tokoh', 'hard'],
+            ['ESTER', 'Ratu Persia dari bangsa Yahudi', 'tokoh', 'hard'],
+            ['KERIT', 'Sungai tempat Elia dipelihara', 'konsep', 'hard'],
+            ['ROH', 'Buah Roh membentuk karakter', 'konsep', 'hard'],
+            ['HAGAI', 'Nabi pembangunan Bait Allah', 'tokoh', 'hard'],
         ];
 
-        foreach ($words as $w) {
-            DB::table('tts_words')->insert([
-                'word' => strtoupper($w['word']),
-                'clue' => $w['clue'],
-                'length' => strlen($w['word']),
-                'category' => $w['category'],
-                'difficulty' => $w['difficulty'],
-                'created_at' => now(),
-                'updated_at' => now(),
-            ]);
+        foreach ($words as [$word, $clue, $category, $difficulty]) {
+
+            DB::table('tts_words')->updateOrInsert(
+                ['word' => strtoupper($word)], // 🔒 KUNCI UNIK
+                [
+                    'clue' => $clue,
+                    'length' => mb_strlen($word),
+                    'category' => $category,
+                    'difficulty' => $difficulty,
+                    'updated_at' => now(),
+                    'created_at' => now(),
+                ]
+            );
         }
     }
 }

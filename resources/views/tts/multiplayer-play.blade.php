@@ -211,70 +211,66 @@ function ttsMultiplayer(){
     async poll(){
   setInterval(async () => {
 
-    const s = await fetch(`/tts/room/${this.roomCode}/state`)
-      .then(r => r.json())
-      .catch(() => null);
+  if(this.status === 'finished'){
+    return;
+  }
 
-    if(!s) return;
+  let s = null;
+  try {
+    const res = await fetch(`/tts/room/${this.roomCode}/state`);
+    if(!res.ok) return;
+    s = await res.json();
+  } catch(e){
+    return;
+  }
 
-    const oldStatus = this.status;
-    const oldTurn   = this.currentTurn;
+  const oldStatus = this.status;
+  const oldTurn   = this.currentTurn;
 
-    Object.assign(this,{
-      status: s.status,
-      player1: s.player1,
-      player2: s.player2,
-      score1: s.score1,
-      score2: s.score2,
-      gameTime: s.game_time,
-      turnTime: s.turn_time
-    });
+  Object.assign(this,{
+    status: s.status,
+    player1: s.player1,
+    player2: s.player2,
+    score1: s.score1,
+    score2: s.score2,
+    gameTime: s.game_time,
+    turnTime: s.turn_time
+  });
 
-    if(s.current_turn){
-      this.currentTurn = s.current_turn;
-    }
+  if(s.current_turn){
+    this.currentTurn = s.current_turn;
+  }
 
-    // 🪨✂️📄 MASUK RPS
-    if(oldStatus !== 'rps' && this.status === 'rps'){
-      this.rpsWaiting = false;
-      return;
-    }
+  if(oldStatus !== 'rps' && this.status === 'rps'){
+    this.rpsWaiting = false;
+    return;
+  }
 
-    // ▶️ MASUK PLAYING
-    if(oldStatus !== 'playing' && this.status === 'playing'){
-      this.puzzleLoaded = false;
-      await this.loadPuzzle();
-      await this.syncCells(true);
-      return;
-    }
+  if(oldStatus !== 'playing' && this.status === 'playing'){
+    this.puzzleLoaded = false;
+    await this.loadPuzzle();
+    await this.syncCells(true);
+    return;
+  }
 
-    // ⛔ JANGAN GANGGU SAAT RPS
-    if(this.status === 'rps'){
-      return;
-    }
+  if(this.status === 'rps'){
+    return;
+  }
 
-    // 🔄 GILIRAN BARU MASUK KE KITA
-    if(oldTurn !== this.currentTurn && this.canPlay()){
-      await this.syncCells(true);
-      return;
-    }
+  if(oldTurn !== this.currentTurn && this.canPlay()){
+    await this.syncCells(true);
+    return;
+  }
 
-    // ⌨️ PLAYER LAGI NGETIK
-    if(this.canPlay() && this.isTyping){
-      return;
-    }
+  if(this.canPlay() && this.isTyping){
+    return;
+  }
 
-    // 👀 PLAYER PASIF
-    if(!this.canPlay()){
-      await this.syncCells(true);
-    }
+  if(!this.canPlay() && oldTurn !== this.currentTurn){
+    await this.syncCells(true);
+  }
 
-    // 🔄 RESET INPUT SAAT TURN PINDAH
-    if(oldTurn === this.myName && this.currentTurn !== this.myName){
-      this.lastInput = null;
-    }
-
-  }, 1200);
+}, 3500);
 },
 
     /* ================= PUZZLE ================= */

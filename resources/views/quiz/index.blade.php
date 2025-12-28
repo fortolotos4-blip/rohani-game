@@ -1,94 +1,123 @@
 @extends('layouts.app')
 
 @section('sidebar')
-  <a href="{{ route('dashboard') }}" class="block py-2">Back</a>
+<a href="{{ route('dashboard') }}"
+   class="block px-3 py-2 text-sm rounded bg-gray-100 hover:bg-gray-200">
+  ← Kembali
+</a>
 @endsection
 
 @section('content')
-<div x-data="quizApp()" x-init="init()" class="max-w-3xl mx-auto">
-  <!-- Aturan modal -->
-  <div x-show="showRules" class="fixed inset-0 bg-black/40 flex items-center justify-center">
-    <div class="bg-white p-6 rounded w-96">
-      <h3 class="text-xl font-bold">Aturan Quiz</h3>
-      <p class="mt-2 text-sm">Anda punya 16 detik setiap soal. Pilih satu jawaban A–D. Jika waktu habis, muncul popup gagal.</p>
+<div x-data="quizApp()" x-init="init()" class="max-w-xl mx-auto px-3 sm:px-0">
+
+  <!-- ================= RULES MODAL ================= -->
+  <div x-show="showRules" class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center">
+    <div class="bg-white p-5 rounded-lg w-full max-w-sm mx-4">
+      <h3 class="text-lg font-bold mb-2">Aturan Quiz</h3>
+      <p class="text-sm text-gray-600">
+        Kamu punya <b>16 detik</b> untuk setiap soal. Pilih satu jawaban.
+      </p>
       <div class="text-right mt-4">
-        <button @click="start()" class="px-3 py-2 bg-green-600 text-white rounded">Mulai</button>
+        <button @click="start()"
+          class="px-4 py-2 bg-green-600 text-white rounded">
+          Mulai
+        </button>
       </div>
     </div>
   </div>
 
-  <!-- Gagal modal -->
-  <div x-show="showFail" class="fixed inset-0 bg-black/40 flex items-center justify-center">
-    <div class="bg-white p-6 rounded">
-      <h3 class="text-xl font-bold text-red-600">Gagal!</h3>
-      <p class="mt-2">Waktu habis. Coba lagi.</p>
-      <div class="mt-4 text-right">
-        <button @click="restart()" class="px-3 py-2 bg-blue-600 text-white rounded">Ulang</button>
+  <!-- ================= FAIL MODAL ================= -->
+  <div x-show="showFail" class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center">
+    <div class="bg-white p-5 rounded-lg w-full max-w-sm mx-4">
+      <h3 class="text-lg font-bold text-red-600">⏰ Waktu Habis</h3>
+      <p class="text-sm mt-2">Coba lagi ya!</p>
+      <div class="text-right mt-4">
+        <button @click="restart()"
+          class="px-4 py-2 bg-blue-600 text-white rounded">
+          Ulang
+        </button>
       </div>
     </div>
   </div>
 
-  <!-- Summary modal -->
-  <div x-show="showSummary" class="fixed inset-0 bg-black/40 flex items-center justify-center">
-    <div class="bg-white p-6 rounded w-96">
-      <h3 class="text-xl font-bold">Ringkasan Permainan</h3>
-      <p class="mt-2">Benar: <strong x-text="summary.correct"></strong></p>
-      <p class="mt-1">Salah: <strong x-text="summary.wrong"></strong></p>
-      <p class="mt-1">Total: <strong x-text="summary.total"></strong></p>
-      <div class="mt-4 text-right">
-        <button @click="goDashboard()" class="px-3 py-2 bg-indigo-600 text-white rounded">Kembali ke Dashboard</button>
+  <!-- ================= SUMMARY MODAL ================= -->
+  <div x-show="showSummary" class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center">
+    <div class="bg-white p-5 rounded-lg w-full max-w-sm mx-4">
+      <h3 class="text-lg font-bold mb-2">Hasil Quiz</h3>
+      <p class="text-sm">✅ Benar: <b x-text="summary.correct"></b></p>
+      <p class="text-sm">❌ Salah: <b x-text="summary.wrong"></b></p>
+      <p class="text-sm">📊 Total: <b x-text="summary.total"></b></p>
+
+      <div class="text-right mt-4">
+        <button @click="goDashboard()"
+          class="px-4 py-2 bg-indigo-600 text-white rounded">
+          Dashboard
+        </button>
       </div>
     </div>
   </div>
 
-  <!-- Main -->
-  <div class="bg-white p-6 rounded shadow">
+  <!-- ================= MAIN QUIZ ================= -->
+  <div class="bg-white rounded-xl shadow p-4 sm:p-6">
+
+    <!-- HEADER -->
     <div class="flex justify-between items-center mb-4">
       <div class="text-sm font-semibold">
-    Waktu: 
-    <span 
-        x-text="timeLeft"
-        :class="timeLeft <= 5 ? 'text-red-600 font-bold' : 'text-black'"
-    ></span> detik
-</div>
-      <div class="text-sm text-gray-500">Soal ke <span x-text="currentIndex + 1"></span> / <span x-text="totalQuestions"></span></div>
+        ⏱️
+        <span
+          x-text="timeLeft"
+          :class="timeLeft <= 5 ? 'text-red-600 font-bold' : 'text-gray-800'">
+        </span> dtk
+      </div>
+      <div class="text-xs text-gray-500">
+        Soal <span x-text="currentIndex + 1"></span>/<span x-text="totalQuestions"></span>
+      </div>
     </div>
 
+    <!-- IMAGE -->
     <div class="flex justify-center mb-4">
-    <img 
-  :src="currentQuestion && currentQuestion.image_url 
-    ? currentQuestion.image_url 
-    : '/images/placeholder.png'"
-  class="max-h-72 w-auto object-contain rounded-lg shadow-md"
-/>
-
-</div>
-
-    <div class="mb-4">
-      <div x-text="currentQuestion ? currentQuestion.prompt : 'Tidak ada soal'"></div>
+      <img
+        :src="currentQuestion?.image_url || '/images/placeholder.png'"
+        class="max-h-56 sm:max-h-72 w-auto object-contain rounded-lg shadow"
+      />
     </div>
 
-    <div class="grid grid-cols-2 gap-3">
+    <!-- QUESTION -->
+    <div class="mb-4 text-sm sm:text-base font-medium text-gray-800"
+         x-text="currentQuestion?.prompt || 'Tidak ada soal'">
+    </div>
+
+    <!-- ANSWERS -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
       <template x-for="choice in currentChoices" :key="choice.id">
-        <button 
-          @click="submit(choice.id)" 
-          :class="choiceClass(choice.id)" 
-          class="p-3 text-left border rounded">
+        <button
+          @click="submit(choice.id)"
+          :class="choiceClass(choice.id)"
+          class="p-3 border rounded-lg text-left text-sm hover:bg-gray-50">
           <span x-text="choice.text"></span>
         </button>
       </template>
     </div>
 
+    <!-- FEEDBACK -->
     <div x-show="answered" class="mt-4">
-      <div x-text="feedbackText" class="font-semibold"></div>
-      <div class="mt-2 text-sm text-gray-600" x-text="explanation"></div>
-      <div class="mt-3 text-right">
-        <button @click="next()" class="px-3 py-2 bg-indigo-600 text-white rounded">Soal Berikutnya</button>
+      <div class="font-semibold text-sm"
+           :class="correct ? 'text-green-600' : 'text-red-600'"
+           x-text="feedbackText">
+      </div>
+
+      <div class="text-xs text-gray-600 mt-1" x-text="explanation"></div>
+
+      <div class="text-right mt-3">
+        <button @click="next()"
+          class="px-4 py-2 bg-indigo-600 text-white rounded">
+          Lanjut →
+        </button>
       </div>
     </div>
+
   </div>
 </div>
-
 <script>
 function quizApp(){
   return {

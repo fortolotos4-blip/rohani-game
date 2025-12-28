@@ -210,10 +210,15 @@ function ttsMultiplayer(){
     /* ================= POLL ================= */
     async poll(){
   setInterval(async () => {
-    const s = await fetch(`/tts/room/${this.roomCode}/state`)
-      .then(r => r.json());
 
-    const oldTurn = this.currentTurn;
+    const s = await fetch(`/tts/room/${this.roomCode}/state`)
+      .then(r => r.json())
+      .catch(() => null);
+
+    if(!s) return;
+
+    const oldStatus = this.status;
+    const oldTurn   = this.currentTurn;
 
     Object.assign(this,{
       status: s.status,
@@ -229,30 +234,42 @@ function ttsMultiplayer(){
       this.currentTurn = s.current_turn;
     }
 
-    // 📦 load puzzle sekali
-    if(this.status === 'playing' && !this.puzzleLoaded){
-      await this.loadPuzzle();
-      await this.syncCells();
+    // 🪨✂️📄 MASUK RPS
+    if(oldStatus !== 'rps' && this.status === 'rps'){
+      this.rpsWaiting = false;
       return;
     }
 
-    // 🔥 JIKA TURN BARU MASUK KE KITA
+    // ▶️ MASUK PLAYING
+    if(oldStatus !== 'playing' && this.status === 'playing'){
+      this.puzzleLoaded = false;
+      await this.loadPuzzle();
+      await this.syncCells(true);
+      return;
+    }
+
+    // ⛔ JANGAN GANGGU SAAT RPS
+    if(this.status === 'rps'){
+      return;
+    }
+
+    // 🔄 GILIRAN BARU MASUK KE KITA
     if(oldTurn !== this.currentTurn && this.canPlay()){
       await this.syncCells(true);
       return;
     }
-    
-    // ⛔ player aktif mengetik → jangan ganggu
+
+    // ⌨️ PLAYER LAGI NGETIK
     if(this.canPlay() && this.isTyping){
       return;
     }
 
-    // 🔥 player pasif → WAJIB sync
+    // 👀 PLAYER PASIF
     if(!this.canPlay()){
       await this.syncCells(true);
     }
 
-    // 🔄 bersihkan input saat giliran pindah
+    // 🔄 RESET INPUT SAAT TURN PINDAH
     if(oldTurn === this.myName && this.currentTurn !== this.myName){
       this.lastInput = null;
     }
@@ -287,12 +304,17 @@ function ttsMultiplayer(){
       if(this.rpsWaiting) return;
 
       fetch(`/tts/room/${this.roomCode}/rps`,{
-        method:'POST',
-        headers:{
-          'Content-Type':'application/json'
-        },
-        body:JSON.stringify({player:this.myName,choice})
+      method:'POST',
+      headers:{
+        'Content-Type':'application/json',
+        'X-CSRF-TOKEN': '{{ csrf_token() }}'
+      },
+      body:JSON.stringify({
+        player: this.myName,
+        choice
       })
+    })
+
       .then(r=>r.json())
       .then(d=>{
         if(d.waiting){

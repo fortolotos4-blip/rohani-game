@@ -108,45 +108,74 @@ class TtsRoomController extends Controller
     /* =========================
        REALTIME STATE
     ========================== */
-    public function state($code)
-    {
-        $room = DB::table('tts_rooms')->where('room_code', $code)->first();
-        if (!$room) return response()->json(['error' => true], 404);
+   public function state($code)
+{
+    $room = DB::table('tts_rooms')->where('room_code', $code)->first();
+    if (!$room) {
+        return response()->json(['error' => true], 404);
+    }
 
-        if ($room->status === 'playing') {
-            if (now()->diffInSeconds($room->turn_started_at) >= 60) {
-                $this->forceEndTurn($room);
-            }
+    // ===============================
+    // HANYA JALAN SAAT PLAYING
+    // ===============================
+    if ($room->status === 'playing') {
 
-            if (now()->diffInSeconds($room->game_started_at) >= 480) {
-                DB::table('tts_rooms')->where('id', $room->id)
-                    ->update(['status' => 'finished']);
-            }
-            $totalWords = count(json_decode($room->puzzle_json, true)['entries']);
+        // ⏱️ SAFE CHECK TURN TIMER
+        if ($room->turn_started_at &&
+            now()->diffInSeconds($room->turn_started_at) >= 60) {
+            $this->forceEndTurn($room);
+        }
+
+        // ⏱️ SAFE CHECK GAME TIMER
+        if ($room->game_started_at &&
+            now()->diffInSeconds($room->game_started_at) >= 480) {
+            DB::table('tts_rooms')
+                ->where('id', $room->id)
+                ->update(['status' => 'finished']);
+        }
+
+        // 🔐 CHECK SEMUA KATA SUDAH TERKUNCI
+        if ($room->puzzle_json) {
+            $puzzle = json_decode($room->puzzle_json, true);
+            $totalWords = count($puzzle['entries'] ?? []);
 
             $lockedWords = DB::table('tts_room_words')
                 ->where('room_code', $room->room_code)
                 ->count();
 
-            if ($lockedWords >= $totalWords) {
-                DB::table('tts_rooms')->where('id', $room->id)
+            if ($totalWords > 0 && $lockedWords >= $totalWords) {
+                DB::table('tts_rooms')
+                    ->where('id', $room->id)
                     ->update(['status' => 'finished']);
             }
         }
-
-        return response()->json([
-            'status' => $room->status,
-            'player1' => $room->player1,
-            'player2' => $room->player2,
-            'current_turn' => $room->current_turn,
-            'game_time' => max(0, 480 - ($room->game_started_at
-                ? now()->diffInSeconds($room->game_started_at) : 0)),
-            'turn_time' => max(0, 60 - ($room->turn_started_at
-                ? now()->diffInSeconds($room->turn_started_at) : 0)),
-            'score1' => $room->player1_score,
-            'score2' => $room->player2_score,
-        ]);
     }
+
+    // ===============================
+    // RESPONSE SELALU AMAN
+    // ===============================
+    return response()->json([
+        'status' => $room->status,
+        'player1' => $room->player1,
+        'player2' => $room->player2,
+        'current_turn' => $room->current_turn,
+        'game_time' => max(
+            0,
+            $room->game_started_at
+                ? 480 - now()->diffInSeconds($room->game_started_at)
+                : 480
+        ),
+        'turn_time' => max(
+            0,
+            $room->turn_started_at
+                ? 60 - now()->diffInSeconds($room->turn_started_at)
+                : 60
+        ),
+        'score1' => $room->player1_score,
+        'score2' => $room->player2_score,
+    ]);
+}
+
 
     /* =========================
        RPS

@@ -24,8 +24,10 @@ class TtsRoomController extends Controller
     $puzzleId = DB::table('tts_puzzles')->min('id');
 
     if (!$puzzleId) {
-        abort(500, 'No base puzzle found in database');
-    }
+    return response()->json([
+        'error' => 'tts_puzzles table is empty on Render database'
+    ], 500);
+}
 
     DB::table('tts_rooms')->insert([
         'room_code' => $code,

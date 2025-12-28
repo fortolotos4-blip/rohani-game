@@ -8,7 +8,6 @@
 <form method="POST" action="/tts/room/create">
 @csrf
 <input name="player" class="border p-2 w-full mb-2" placeholder="Nama">
-<input type="hidden" name="puzzle_id" value="1">
 <button class="bg-green-600 text-white w-full py-2">Buat Room</button>
 </form>
 

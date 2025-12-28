@@ -32,7 +32,6 @@ class TtsRoomController extends Controller
     DB::table('tts_rooms')->insert([
         'room_code' => $code,
         'player1' => $request->player,
-        'puzzle_id' => $puzzleId, // hanya untuk memenuhi FK
         'status' => 'waiting',
         'player1_score' => 0,
         'player2_score' => 0,

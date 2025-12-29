@@ -72,11 +72,6 @@
     : '/images/placeholder.png'"
   class="max-h-72 w-auto object-contain rounded-lg shadow-md"
 />
-
-      <p class="text-xs text-red-500">
-        image_path:
-        <span x-text="currentQuestion ? currentQuestion.image_path : 'null'"></span>
-      </p>
     </div>
 
     <div class="mb-4">

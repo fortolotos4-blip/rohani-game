@@ -9,37 +9,48 @@ use App\Attempt;
 
 class QuizController extends Controller
 {
-    use App\Category;
+    public function index(Request $request)
+    {
+        // 1️⃣ Ambil ID soal yang SUDAH pernah ditampilkan
+        $usedIds = session()->get('quiz_used_question_ids', []);
 
-public function index()
-{
-    $quizCategory = Category::where('slug', 'quiz')->firstOrFail();
+        // 2️⃣ Query soal quiz (HANYA dari folder questions/)
+        $questions = Question::with('choices')
+            ->where('image_path', 'like', 'questions/%')
+            ->whereNotIn('id', $usedIds)      // 🔥 JANGAN DUPLIKAT
+            ->inRandomOrder()
+            ->limit(10)
+            ->get();
 
-    $questions = Question::with('choices')
-        ->where('category_id', $quizCategory->id) // 🔥 FILTER
-        ->inRandomOrder()
-        ->limit(10)
-        ->get();
+        // 3️⃣ Simpan ID soal yang baru dipakai ke session
+        session()->put(
+            'quiz_used_question_ids',
+            array_merge($usedIds, $questions->pluck('id')->toArray())
+        );
 
-    $payload = $questions->map(function($q){
-        return [
-            'id' => $q->id,
-            'prompt' => $q->prompt,
-            'image_url' => $q->image_path 
-                ? asset($q->image_path)   // questions/image
-                : null,
-            'time_limit_seconds' => $q->time_limit_seconds,
-            'choices' => $q->choices->map(fn($c)=>[
-                'id'=>$c->id,
-                'text'=>$c->text
-            ]),
-            'explanation' => $q->explanation,
-        ];
-    });
+        // 4️⃣ Payload ke view
+        $payload = $questions->map(function ($q) {
+            return [
+                'id' => $q->id,
+                'prompt' => $q->prompt,
+                'image_url' => $q->image_path
+                    ? asset($q->image_path)
+                    : null,
+                'time_limit_seconds' => $q->time_limit_seconds ?? 15,
+                'choices' => $q->choices->map(function ($c) {
+                    return [
+                        'id' => $c->id,
+                        'text' => $c->text,
+                    ];
+                })->values(),
+                'explanation' => $q->explanation,
+            ];
+        })->toArray();
 
-    return view('quiz.index', compact('payload'));
-}
-
+        return view('quiz.index', [
+            'questions' => $payload,
+        ]);
+    }
 
 
     // endpoint tetap pakai untuk validasi jawaban dan menyimpan attempt

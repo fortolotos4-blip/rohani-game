@@ -52,12 +52,11 @@
 
     <div class="flex justify-center mb-4">
       <img 
-  :src="current.image_path 
+  :src="current && current.image_path 
     ? '/' + current.image_path 
-    : '/images/placeholder.png'" 
+    : '/images/placeholder.png'"
   class="max-h-[420px] w-auto object-contain mx-auto rounded-lg shadow"
 />
-
     </div>
 
     <div class="mb-4 text-center">

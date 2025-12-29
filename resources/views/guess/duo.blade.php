@@ -71,12 +71,11 @@
     <div :class="activePlayer === 'blue' ? 'bg-blue-50 p-4 rounded' : 'bg-red-50 p-4 rounded'">
       <div class="flex justify-center mb-4">
         <img 
-  :src="current.image_path 
+  :src="current && current.image_path 
     ? '/' + current.image_path 
-    : '/images/placeholder.png'" 
+    : '/images/placeholder.png'"
   class="max-h-[420px] w-auto object-contain mx-auto rounded-lg shadow"
 />
-
       </div>
 
       <div class="mb-4 text-center">
@@ -138,11 +137,17 @@ function guessDuo(){
     },
 
     loadCurrent(){
-        this.highlightClass = '';
-      const totalSlots = this.current.answer_slots ?? 0;
-      this.slots = Array.from({ length: totalSlots }).map(() => '');
-      this.timeLeft = this.current.time_limit_seconds ?? 16;
-    },
+  this.highlightClass = '';
+
+  // 🔥 SET CURRENT DULU
+  this.current = this.questions[this.index];
+
+  if(!this.current) return;
+
+  const totalSlots = this.current.answer_slots ?? 0;
+  this.slots = Array.from({ length: totalSlots }).map(() => '');
+  this.timeLeft = this.current.time_limit_seconds ?? 16;
+},
 
     startTimer(){
       if(this.timerId) clearInterval(this.timerId);

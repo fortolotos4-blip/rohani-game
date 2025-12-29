@@ -15,20 +15,25 @@ class GuessController extends Controller
 
     // Single mode: pick N random questions and send to view
     public function single()
-    {
-        $questions = Question::inRandomOrder()->limit(10)->get()->map(function($q){
+{
+    $questions = Question::where('image_path', 'like', 'guess/%')
+        ->inRandomOrder()
+        ->limit(10)
+        ->get()
+        ->map(function ($q) {
             return [
-            'id' => $q->id,
-            'image_path' => $q->image_path,
-            'answer_text' => $q->answer_text,
-            'answer_slots' => $q->answer_slots, // 🔥 PENTING
-            'time_limit_seconds' => $q->time_limit_seconds ?? 16,
-        ];
+                'id' => $q->id,
+                'image_path' => $q->image_path,
+                'answer_text' => $q->answer_text,
+                'answer_slots' => $q->answer_slots,
+                'time_limit_seconds' => $q->time_limit_seconds ?? 16,
+            ];
+        })
+        ->toArray();
 
-        })->toArray();
+    return view('guess.single', compact('questions'));
+}
 
-        return view('guess.single', ['questions' => $questions]);
-    }
 
     // Validate single answer (AJAX)
     public function singleAnswer(Request $request)
@@ -54,20 +59,25 @@ class GuessController extends Controller
 
     // Duo mode: supply questions array
     public function duo()
-    {
-        $questions = Question::inRandomOrder()->limit(10)->get()->map(function($q){
+{
+    $questions = Question::where('image_path', 'like', 'guess/%')
+        ->inRandomOrder()
+        ->limit(10)
+        ->get()
+        ->map(function ($q) {
             return [
-            'id' => $q->id,
-            'image_path' => $q->image_path,
-            'answer_text' => $q->answer_text,
-            'answer_slots' => $q->answer_slots, // 🔥 PENTING
-            'time_limit_seconds' => $q->time_limit_seconds ?? 16,
-        ];
+                'id' => $q->id,
+                'image_path' => $q->image_path,
+                'answer_text' => $q->answer_text,
+                'answer_slots' => $q->answer_slots,
+                'time_limit_seconds' => $q->time_limit_seconds ?? 16,
+            ];
+        })
+        ->toArray();
 
-        })->toArray();
+    return view('guess.duo', compact('questions'));
+}
 
-        return view('guess.duo', ['questions' => $questions]);
-    }
 
     // Duo answer — similar validation
     public function duoAnswer(Request $request)

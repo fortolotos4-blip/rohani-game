@@ -174,7 +174,7 @@
 <script>
 function ttsMultiplayer(){
   return {
-    
+    showClues: false,
     /* ================= STATE ================= */
     validatedWords: {},
     grid:[], entries:[], inputs:[],
@@ -196,8 +196,6 @@ function ttsMultiplayer(){
 
     score1:0, score2:0,
     gameTime:0, turnTime:0,
-
-    showClues: false,
 
     puzzleLoaded:false,
     rpsWaiting:false,

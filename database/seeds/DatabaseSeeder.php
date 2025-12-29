@@ -12,9 +12,6 @@ class DatabaseSeeder extends Seeder
     public function run()
 {
     $this->call([
-QuizSeeder::class,
-SurpriseSeeder::class,
-TtsWordsSeeder::class,
 GuessImageSeeder::class,
     ]);
 }

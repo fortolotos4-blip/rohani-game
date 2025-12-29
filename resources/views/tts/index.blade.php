@@ -1,32 +1,34 @@
 @extends('layouts.app')
 
 @section('content')
-<div x-data="ttsApp()" x-init="init()" class="max-w-5xl mx-auto p-6 bg-white rounded shadow">
+<div x-data="ttsApp()" x-init="init()"
+     class="max-w-5xl mx-auto p-4 sm:p-6 bg-white rounded shadow">
 
   <!-- HEADER -->
-  <div class="flex justify-between mb-4 items-center">
-    <h2 class="text-2xl font-bold">🧩 Teka-Teki Silang Rohani</h2>
-    <div class="text-lg font-semibold">
+  <div class="flex justify-between items-center mb-4 sticky top-0 bg-white z-10">
+    <h2 class="text-xl sm:text-2xl font-bold">🧩 TTS Rohani</h2>
+    <div class="font-semibold text-sm sm:text-base">
       ⏱ <span x-text="timeLeft"></span>s
     </div>
   </div>
 
   <!-- DIFFICULTY -->
-  <div class="flex gap-2 mb-4">
+  <div class="flex gap-2 mb-4 text-sm">
     <a href="/tts?difficulty=easy" class="px-3 py-1 bg-green-500 text-white rounded">Easy</a>
     <a href="/tts?difficulty=medium" class="px-3 py-1 bg-yellow-500 text-white rounded">Medium</a>
     <a href="/tts?difficulty=hard" class="px-3 py-1 bg-red-500 text-white rounded">Hard</a>
   </div>
 
-  <div class="grid grid-cols-3 gap-6">
+  <!-- GRID + CLUES -->
+  <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
 
     <!-- GRID -->
-    <div class="col-span-2">
+    <div class="md:col-span-2 flex justify-center overflow-x-auto">
       <table class="border-collapse mx-auto">
         <template x-for="(row,y) in grid" :key="y">
           <tr>
             <template x-for="(cell,x) in row" :key="x">
-              <td class="w-10 h-10 border border-gray-400 relative">
+              <td class="w-11 h-11 sm:w-10 sm:h-10 border border-gray-400 relative">
 
                 <template x-if="numbers[`${y}_${x}`]">
                   <span class="absolute top-0 left-0 text-[10px] px-1"
@@ -34,14 +36,12 @@
                 </template>
 
                 <template x-if="cell !== null">
-                  <input
-                    maxlength="1"
-                    class="w-full h-full text-center uppercase pt-2 outline-none"
-                    :disabled="lockedCells[`${y}_${x}`]"
-                    :class="cellClass(y,x)"
-                    x-model="inputs[y][x]"
-                    @input="onInput"
-                  >
+                  <input maxlength="1"
+                         class="w-full h-full text-center uppercase outline-none"
+                         :disabled="lockedCells[`${y}_${x}`]"
+                         :class="cellClass(y,x)"
+                         x-model="inputs[y][x]"
+                         @input="onInput">
                 </template>
 
               </td>
@@ -51,34 +51,67 @@
       </table>
     </div>
 
-    <!-- CLUES -->
-    <div>
+    <!-- CLUES DESKTOP -->
+    <div class="hidden md:block text-sm">
       <h4 class="font-bold mb-2">➡️ Mendatar</h4>
       <template x-for="e in across" :key="e.number">
-        <div><b x-text="e.number"></b>. <span x-text="e.clue"></span></div>
+        <div class="mb-1">
+          <b x-text="e.number"></b>. <span x-text="e.clue"></span>
+        </div>
       </template>
 
       <h4 class="font-bold mt-4 mb-2">⬇️ Menurun</h4>
       <template x-for="e in down" :key="e.number">
-        <div><b x-text="e.number"></b>. <span x-text="e.clue"></span></div>
+        <div class="mb-1">
+          <b x-text="e.number"></b>. <span x-text="e.clue"></span>
+        </div>
       </template>
     </div>
 
   </div>
 
-  <!-- POPUP SELESAI -->
-  <div x-show="gameOver" class="fixed inset-0 bg-black/50 flex items-center justify-center">
+  <!-- CLUES MOBILE -->
+  <div class="mt-6 md:hidden">
+    <button @click="showClues = !showClues"
+            class="w-full bg-gray-200 px-4 py-2 rounded text-sm font-semibold">
+      📜 Lihat Soal
+    </button>
+
+    <div x-show="showClues" class="mt-4 space-y-4 text-sm">
+
+      <div>
+        <h4 class="font-bold mb-2">➡️ Mendatar</h4>
+        <template x-for="e in across" :key="e.number">
+          <div class="mb-1">
+            <b x-text="e.number"></b>. <span x-text="e.clue"></span>
+          </div>
+        </template>
+      </div>
+
+      <div>
+        <h4 class="font-bold mb-2">⬇️ Menurun</h4>
+        <template x-for="e in down" :key="e.number">
+          <div class="mb-1">
+            <b x-text="e.number"></b>. <span x-text="e.clue"></span>
+          </div>
+        </template>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- GAME OVER -->
+  <div x-show="gameOver"
+       class="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
     <div class="bg-white p-6 rounded text-center w-80">
       <h2 class="text-xl font-bold mb-2"
           x-text="resultType === 'win' ? '🎉 Selamat!' : '⏰ Waktu Habis'"></h2>
 
       <p class="mb-3">
-  Jawaban benar:
-  <b x-text="Object.keys(solvedWords).length"></b> /
-<b x-text="countPlayableEntries()"></b>
-
-</p>
-
+        Jawaban benar:
+        <b x-text="Object.keys(solvedWords).length"></b> /
+        <b x-text="countPlayableEntries()"></b>
+      </p>
 
       <a href="{{ route('dashboard') }}"
          class="px-4 py-2 bg-blue-600 text-white rounded">

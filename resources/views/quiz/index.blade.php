@@ -187,7 +187,7 @@ function quizApp(){
       const taken = (this.currentQuestion.time_limit_seconds ?? 16) - this.timeLeft;
       this.chosenId = choiceId;
 
-      fetch("{{ route('quiz.answer') }}", {
+      fetch("/quiz/answer", {
         method:'POST',
         headers:{
           'Content-Type':'application/json',

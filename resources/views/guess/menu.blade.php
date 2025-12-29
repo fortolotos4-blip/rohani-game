@@ -1,9 +1,5 @@
 @extends('layouts.app')
 
-@section('sidebar')
-  <a href="{{ route('dashboard') }}" class="block py-2">Back</a>
-@endsection
-
 @section('content')
 <div class="max-w-3xl mx-auto p-4">
   <h2 class="text-2xl mb-4 font-bold">Tebak Gambar</h2>

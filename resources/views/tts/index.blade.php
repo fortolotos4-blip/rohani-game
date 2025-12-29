@@ -139,6 +139,8 @@ function ttsApp(){
     timeLeft: {{ $difficulty==='easy' ? 400 : ($difficulty==='medium' ? 300 : 250) }},
     timer: null,
 
+    showClues: false,
+
     gameOver: false,
     resultType: null,
 

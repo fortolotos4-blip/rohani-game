@@ -1,9 +1,5 @@
 @extends('layouts.app')
 
-@section('sidebar')
-  <a href="{{ route('guess.menu') }}" class="block py-2">Back</a>
-@endsection
-
 @section('content')
 <div x-data="guessDuo()" x-init="init()" class="max-w-4xl mx-auto p-4">
   <!-- Rules modal -->

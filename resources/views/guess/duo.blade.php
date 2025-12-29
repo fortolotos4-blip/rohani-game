@@ -71,9 +71,9 @@
     <div :class="activePlayer === 'blue' ? 'bg-blue-50 p-4 rounded' : 'bg-red-50 p-4 rounded'">
       <div class="flex justify-center mb-4">
         <img 
-  :src="current && current.image_path 
-    ? '/' + current.image_path 
-    : '/images/placeholder.png'"
+  :src="current.image_path 
+    ? '{{ asset('') }}' + current.image_path 
+    : '{{ asset('images/placeholder.png') }}'"
   class="max-h-[420px] w-auto object-contain mx-auto rounded-lg shadow"
 />
       </div>

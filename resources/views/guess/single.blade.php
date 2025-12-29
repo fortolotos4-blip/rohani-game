@@ -52,11 +52,12 @@
 
     <div class="flex justify-center mb-4">
       <img 
-  :src="current && current.image_path 
-    ? '/' + current.image_path 
-    : '/images/placeholder.png'"
+  :src="current.image_path 
+    ? '{{ asset('') }}' + current.image_path 
+    : '{{ asset('images/placeholder.png') }}'"
   class="max-h-[420px] w-auto object-contain mx-auto rounded-lg shadow"
 />
+
     </div>
 
     <div class="mb-4 text-center">
@@ -89,6 +90,7 @@ Submit
 <script>
 function guessSingle(){
   return {
+    summary: { correct: 0, wrong: 0, total: 0 }, // ✅ FIX
     questions: @json($questions ?? []),
     index: 0,
     current: null,

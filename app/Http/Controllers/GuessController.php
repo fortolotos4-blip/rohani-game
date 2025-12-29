@@ -16,7 +16,7 @@ class GuessController extends Controller
     // Single mode: pick N random questions and send to view
     public function single()
     {
-        $questions = Question::inRandomOrder()->limit(5)->get()->map(function($q){
+        $questions = Question::inRandomOrder()->limit(10)->get()->map(function($q){
             return [
             'id' => $q->id,
             'image_path' => $q->image_path,
@@ -55,7 +55,7 @@ class GuessController extends Controller
     // Duo mode: supply questions array
     public function duo()
     {
-        $questions = Question::inRandomOrder()->limit(6)->get()->map(function($q){
+        $questions = Question::inRandomOrder()->limit(10)->get()->map(function($q){
             return [
             'id' => $q->id,
             'image_path' => $q->image_path,

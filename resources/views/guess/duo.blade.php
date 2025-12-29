@@ -174,7 +174,7 @@ function guessDuo(){
         time_taken_seconds: (this.current.time_limit_seconds ?? 16) - this.timeLeft 
     };
 
-    fetch("{{ route('guess.duo.answer') }}", {
+    fetch("/guess/duo/answer", {
         method:'POST',
         headers:{
             'Content-Type':'application/json',

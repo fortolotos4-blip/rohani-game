@@ -155,7 +155,7 @@ function guessSingle(){
       time_taken_seconds: (this.current.time_limit_seconds ?? 16) - this.timeLeft 
   };
 
-  fetch("{{ route('guess.single.answer') }}", {
+  fetch("/guess/single/answer", {
     method:'POST',
     headers:{'Content-Type':'application/json','X-CSRF-TOKEN':'{{ csrf_token() }}'},
     body: JSON.stringify(payload)

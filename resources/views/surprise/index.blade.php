@@ -1,9 +1,5 @@
 @extends('layouts.app')
 
-@section('sidebar')
-  <a href="{{ route('dashboard') }}" class="block py-2">Back</a>
-@endsection
-
 @section('content')
 <div x-data="surpriseApp()" x-init="init()" class="max-w-4xl mx-auto p-4">
 

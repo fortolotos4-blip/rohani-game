@@ -11,6 +11,8 @@ class QuizController extends Controller
 {
     public function index(Request $request)
     {
+        session()->forget('quiz_used_question_ids');
+        
         // 1️⃣ Ambil ID soal yang SUDAH pernah ditampilkan
         $usedIds = session()->get('quiz_used_question_ids', []);
 

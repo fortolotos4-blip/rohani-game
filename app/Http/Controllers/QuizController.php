@@ -9,30 +9,37 @@ use App\Attempt;
 
 class QuizController extends Controller
 {
-    public function index()
+    use App\Category;
+
+public function index()
 {
-    // ambil 10 soal acak; ubah limit sesuai kebutuhan
-    $questions = Question::with('choices')->inRandomOrder()->limit(10)->get();
+    $quizCategory = Category::where('slug', 'quiz')->firstOrFail();
 
-    // transform data agar view menerima array of objects
+    $questions = Question::with('choices')
+        ->where('category_id', $quizCategory->id) // 🔥 FILTER
+        ->inRandomOrder()
+        ->limit(10)
+        ->get();
+
     $payload = $questions->map(function($q){
-    return [
-        'id' => $q->id,
-        'prompt' => $q->prompt,
-        'image_url' => $q->image_path ? asset($q->image_path) : null,
-        'time_limit_seconds' => $q->time_limit_seconds,
-        'choices' => $q->choices->map(function($c){
-            return ['id'=>$c->id, 'text'=>$c->text];
-        })->values(),
-        'explanation' => $q->explanation,
-    ];
-})->toArray();
- // <-- PENTING: jadi array, bukan JSON string
+        return [
+            'id' => $q->id,
+            'prompt' => $q->prompt,
+            'image_url' => $q->image_path 
+                ? asset($q->image_path)   // questions/image
+                : null,
+            'time_limit_seconds' => $q->time_limit_seconds,
+            'choices' => $q->choices->map(fn($c)=>[
+                'id'=>$c->id,
+                'text'=>$c->text
+            ]),
+            'explanation' => $q->explanation,
+        ];
+    });
 
-    return view('quiz.index', [
-        'questions' => $payload, // kirim array ke view
-    ]);
+    return view('quiz.index', compact('payload'));
 }
+
 
 
     // endpoint tetap pakai untuk validasi jawaban dan menyimpan attempt

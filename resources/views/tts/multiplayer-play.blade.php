@@ -2,10 +2,10 @@
 
 @section('content')
 <div x-data="ttsMultiplayer()" x-init="init()"
-     class="max-w-6xl mx-auto p-6 bg-white rounded shadow">
+     class="max-w-6xl mx-auto p-4 sm:p-6 bg-white rounded shadow">
 
   <!-- ================= ROOM INFO ================= -->
-  <div class="flex justify-between mb-4 text-sm text-gray-700">
+  <div class="flex flex-col sm:flex-row sm:justify-between gap-2 mb-4 text-sm text-gray-700">
     <div>
       Room: <b>{{ $room->room_code }}</b> |
       Status: <b x-text="status"></b>
@@ -41,7 +41,7 @@
     <div>
 
       <!-- TURN & TIMER -->
-      <div class="flex gap-6 items-center mb-4">
+      <div class="flex flex-col sm:flex-row gap-3 sm:gap-6 items-start sm:items-center mb-4">
         <div class="font-semibold">
           Giliran:
           <span class="px-3 py-1 rounded"
@@ -50,34 +50,33 @@
           </span>
         </div>
         <div class="text-sm">
-          ⏱️ Giliran: <b x-text="turnTime"></b>s |
+          ⏱️ Turn: <b x-text="turnTime"></b>s |
           ⌛ Game: <b x-text="gameTime"></b>s
         </div>
       </div>
 
       <!-- SCORE -->
-      <div class="flex gap-6 mb-3 text-sm">
+      <div class="flex gap-6 mb-4 text-sm">
         <div>👤 <b x-text="player1"></b>: <b x-text="score1"></b></div>
         <div>👤 <b x-text="player2"></b>: <b x-text="score2"></b></div>
       </div>
 
-      <div class="grid grid-cols-3 gap-6">
+      <!-- ================= GRID + DESKTOP CLUES ================= -->
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
 
-        <!-- ================= GRID ================= -->
-        <div class="col-span-2 flex justify-center">
-          <table class="border-collapse">
+        <!-- GRID -->
+        <div class="md:col-span-2 flex justify-center overflow-x-auto">
+          <table class="border-collapse mx-auto">
             <template x-for="(row,y) in grid" :key="y">
               <tr>
                 <template x-for="(cell,x) in row" :key="x">
-                  <td class="w-10 h-10 border border-gray-400 relative bg-white">
+                  <td class="w-11 h-11 sm:w-10 sm:h-10 border border-gray-400 relative bg-white">
 
-                    <!-- NUMBER -->
                     <template x-if="numbers[`${y}_${x}`]">
                       <span class="absolute top-0 left-0 text-[10px] px-1 text-gray-600"
                         x-text="numbers[`${y}_${x}`]"></span>
                     </template>
 
-                    <!-- INPUT -->
                     <template x-if="cell !== null">
                       <input maxlength="1"
                         class="w-full h-full text-center uppercase outline-none"
@@ -94,20 +93,54 @@
           </table>
         </div>
 
-        <!-- ================= CLUES ================= -->
-        <div class="text-sm">
+        <!-- DESKTOP CLUES -->
+        <div class="hidden md:block text-sm">
           <h4 class="font-bold mb-2">➡️ Mendatar</h4>
           <template x-for="e in across" :key="e.number">
-            <div><b x-text="e.number"></b>. <span x-text="e.clue"></span></div>
+            <div class="mb-1">
+              <b x-text="e.number"></b>. <span x-text="e.clue"></span>
+            </div>
           </template>
 
           <h4 class="font-bold mt-4 mb-2">⬇️ Menurun</h4>
           <template x-for="e in down" :key="e.number">
-            <div><b x-text="e.number"></b>. <span x-text="e.clue"></span></div>
+            <div class="mb-1">
+              <b x-text="e.number"></b>. <span x-text="e.clue"></span>
+            </div>
           </template>
         </div>
 
       </div>
+
+      <!-- ================= MOBILE CLUES ================= -->
+      <div class="mt-6 md:hidden">
+        <button
+          @click="showClues = !showClues"
+          class="w-full bg-gray-200 px-4 py-2 rounded text-sm font-semibold">
+          📜 Lihat Soal
+        </button>
+
+        <div x-show="showClues" class="mt-4 space-y-4 text-sm">
+          <div>
+            <h4 class="font-bold mb-2">➡️ Mendatar</h4>
+            <template x-for="e in across" :key="e.number">
+              <div class="mb-1">
+                <b x-text="e.number"></b>. <span x-text="e.clue"></span>
+              </div>
+            </template>
+          </div>
+
+          <div>
+            <h4 class="font-bold mb-2">⬇️ Menurun</h4>
+            <template x-for="e in down" :key="e.number">
+              <div class="mb-1">
+                <b x-text="e.number"></b>. <span x-text="e.clue"></span>
+              </div>
+            </template>
+          </div>
+        </div>
+      </div>
+
     </div>
   </template>
 
@@ -163,6 +196,8 @@ function ttsMultiplayer(){
 
     score1:0, score2:0,
     gameTime:0, turnTime:0,
+
+    showClues: false,
 
     puzzleLoaded:false,
     rpsWaiting:false,

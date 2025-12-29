@@ -73,7 +73,13 @@
     </div>
 
     <div class="mt-4 text-center">
-      <button @click="submit()" class="px-4 py-2 bg-green-600 text-white rounded">Submit</button>
+      <button 
+  @click="submit()" 
+  :disabled="slots.some(s => !s)"
+  class="px-4 py-2 bg-green-600 text-white rounded disabled:opacity-50"
+>
+Submit
+</button>
     </div>
   </div>
 </div>
@@ -115,8 +121,8 @@ function guessSingle(){
       this.highlightClass = '';
       this.current = this.questions[this.index];
       // prepare input slots based on answer length (strip spaces)
-      const ans = (this.current.answer_text || '').replace(/\s+/g,'');
-      this.slots = Array.from({length: ans.length}).map(()=>'');
+      const totalSlots = this.current.answer_slots ?? 0;
+      this.slots = Array.from({ length: totalSlots }).map(() => '');
       this.timeLeft = this.current.time_limit_seconds ?? 16;
     },
     startTimer(){

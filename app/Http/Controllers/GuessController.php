@@ -18,11 +18,13 @@ class GuessController extends Controller
     {
         $questions = Question::inRandomOrder()->limit(5)->get()->map(function($q){
             return [
-                'id' => $q->id,
-                'image_path' => $q->image_path,
-                'answer_text' => $q->answer_text,
-                'time_limit_seconds' => $q->time_limit_seconds ?? 16,
-            ];
+            'id' => $q->id,
+            'image_path' => $q->image_path,
+            'answer_text' => $q->answer_text,
+            'answer_slots' => $q->answer_slots, // 🔥 PENTING
+            'time_limit_seconds' => $q->time_limit_seconds ?? 16,
+        ];
+
         })->toArray();
 
         return view('guess.single', ['questions' => $questions]);
@@ -55,11 +57,13 @@ class GuessController extends Controller
     {
         $questions = Question::inRandomOrder()->limit(6)->get()->map(function($q){
             return [
-                'id' => $q->id,
-                'image_path' => $q->image_path,
-                'answer_text' => $q->answer_text,
-                'time_limit_seconds' => $q->time_limit_seconds ?? 16,
-            ];
+            'id' => $q->id,
+            'image_path' => $q->image_path,
+            'answer_text' => $q->answer_text,
+            'answer_slots' => $q->answer_slots, // 🔥 PENTING
+            'time_limit_seconds' => $q->time_limit_seconds ?? 16,
+        ];
+
         })->toArray();
 
         return view('guess.duo', ['questions' => $questions]);

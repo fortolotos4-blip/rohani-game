@@ -26,7 +26,7 @@ class GuessController extends Controller
                 'image_path' => $q->image_path,
                 'answer_text' => $q->answer_text,
                 'answer_slots' => $q->answer_slots,
-                'time_limit_seconds' => $q->time_limit_seconds ?? 16,
+                'time_limit_seconds' => $q->time_limit_seconds ?? 45,
             ];
         })
         ->toArray();

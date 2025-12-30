@@ -18,7 +18,7 @@ class GuessController extends Controller
 {
     $questions = Question::where('image_path', 'like', 'guess/%')
         ->inRandomOrder()
-        ->limit(10)
+        ->limit(5)
         ->get()
         ->map(function ($q) {
             return [

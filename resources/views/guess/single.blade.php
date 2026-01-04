@@ -2,6 +2,15 @@
 
 @section('content')
 <div x-data="guessSingle()" x-init="init()" class="max-w-3xl mx-auto p-4">
+  <!-- TOAST -->
+<div
+  x-show="toast.show"
+  x-transition
+  class="fixed top-5 right-5 px-4 py-2 rounded shadow-lg text-white text-sm z-50"
+  :class="toast.type === 'success' ? 'bg-green-600' : 'bg-red-600'"
+  x-text="toast.message">
+</div>
+
   <!-- Rules modal -->
   <div x-show="showRules" class="fixed inset-0 bg-black/40 flex items-center justify-center">
     <div class="bg-white p-6 rounded w-96">
@@ -26,29 +35,68 @@
   </div>
 
   <!-- Summary modal -->
-  <div x-show="showSummary" class="fixed inset-0 bg-black/40 flex items-center justify-center">
-    <div class="bg-white p-6 rounded w-96">
-      <h3 class="text-xl font-bold">Ringkasan</h3>
-      <p class="mt-2">Benar: <strong x-text="summary.correct"></strong></p>
-      <p class="mt-1">Salah: <strong x-text="summary.wrong"></strong></p>
-      <div class="mt-4 text-right">
-        <a href="{{ route('guess.menu') }}" class="px-3 py-2 bg-indigo-600 text-white rounded">Kembali</a>
-      </div>
+  <div x-show="showSummary"
+     class="fixed inset-0 bg-black/50 flex items-center justify-center">
+  <div class="bg-white p-6 rounded w-96 text-center space-y-3">
+
+    <h3 class="text-xl font-bold text-green-700">
+      🎉 Sesi Selesai
+    </h3>
+
+    <p class="text-sm text-gray-600">
+      Terima kasih sudah bermain 🙏
+    </p>
+
+    <div class="mt-3 text-sm">
+      <p>Soal dimainkan: <b x-text="summary.total"></b></p>
+      <p>Jawaban benar: <b x-text="summary.correct"></b></p>
+      <p>Jawaban salah: <b x-text="summary.wrong"></b></p>
     </div>
+
+    <p class="mt-2 text-sm text-indigo-600 font-semibold">
+      Semoga permainan ini menambah wawasan dan berkat ✨
+    </p>
+
+    <div class="mt-4">
+      <a href="{{ route('dashboard') }}"
+         class="inline-block px-4 py-2 bg-indigo-600 text-white rounded">
+        Kembali ke Dashboard
+      </a>
+    </div>
+
   </div>
+</div>
 
   <!-- Main UI -->
   <div class="bg-white p-6 rounded shadow">
-    <div class="flex items-center justify-between mb-4">
-      <div class="text-sm font-semibold">Waktu: <span 
-        x-text="timeLeft"
-        :class="timeLeft <= 5 ? 'text-red-600 font-bold' : 'text-black'"
-    ></span> detik</div>
-      <div class="w-1/3 bg-gray-200 rounded h-4 relative">
-        <div :style="`width:${progress}%`" class="absolute left-0 top-0 bottom-0 bg-green-500 rounded transition-all duration-500"></div>
-        <div class="absolute inset-0 flex items-center justify-center text-xs text-white font-bold" x-text="progressText"></div>
-      </div>
-    </div>
+    
+    <!-- HEADER TIMER -->
+<div class="flex justify-between items-center mb-4 text-sm">
+
+  <!-- LEFT -->
+  <div class="space-x-4">
+    <span>
+      ⏱️ Soal:
+      <b :class="timeLeft <= 5 ? 'text-red-600' : ''"
+         x-text="timeLeft"></b>s
+    </span>
+
+    <span>
+      ⏳ Sesi:
+      <b x-text="sessionTimeLeft"></b>s
+    </span>
+  </div>
+
+  <!-- RIGHT : PROGRESS -->
+  <div class="w-32 bg-gray-200 rounded h-3 relative">
+    <div :style="`width:${progress}%`"
+         class="absolute left-0 top-0 bottom-0 bg-green-500 rounded transition-all"></div>
+    <div class="absolute inset-0 text-[10px] text-white font-bold flex items-center justify-center"
+         x-text="progressText"></div>
+  </div>
+
+</div>
+
 
     <div class="flex justify-center mb-4">
       <img 
@@ -64,14 +112,24 @@
       <div class="text-lg" x-text="current ? current.prompt || '' : ''"></div>
     </div>
 
+    <!-- INPUT SLOTS -->
     <div class="flex justify-center gap-2">
+      <div class="flex justify-center gap-2"
+     :class="shakeInputs ? 'shake' : ''">
+
       <template x-for="(slot, i) in slots" :key="i">
         <input type="text"
-       maxlength="1"
-       x-model="slots[i]"
-       @input="onCharInput(i)"
-       :class="'w-10 h-10 text-center border rounded ' + highlightClass"
-/>
+        maxlength="1"
+        x-model="slots[i]"
+        :disabled="lockedSlots.includes(i)"
+        @input="onCharInput(i)"
+        :class="`
+          w-10 h-10 text-center border rounded
+          ${lockedSlots.includes(i) ? 'bg-gray-200 font-bold' : ''}
+          ${highlightClass}
+        `"
+        />
+
       </template>
     </div>
 
@@ -83,6 +141,13 @@
 >
 Submit
 </button>
+
+<button
+  @click="skip()"
+  class="ml-3 px-4 py-2 bg-gray-400 text-white rounded">
+  Skip
+</button>
+
     </div>
   </div>
 </div>
@@ -92,7 +157,9 @@ function guessSingle(){
   return {
     wrongCount: 0,        // jumlah salah di soal ini
     answeredCorrectIds: [], // id soal yang sudah benar
-
+    lockedSlots: [],   // index slot yang dikunci (hint)
+    sessionTimeLeft: 300,   // 5 menit (300 detik)
+    sessionTimerId: null,
     summary: { correct: 0, wrong: 0, total: 0 }, // ✅ FIX
     questions: @json($questions ?? []),
     index: 0,
@@ -107,26 +174,64 @@ function guessSingle(){
     slots: [],
     attempts: [], // {correct:bool}
     highlightClass: '',
+    shakeInputs: false,
+
+    toast: {
+  show: false,
+  message: '',
+  type: 'success' // success | error
+},
+
     init(){
       if(this.questions.length) {
         this.current = this.questions[0];
         this.total = this.questions.length;
       }
     },
+    
     start(){
   this.showRules = false;
-  // reset progress & attempts saat mulai
+
+  this.sessionTimeLeft = 300; // reset 5 menit
+  this.startSessionTimer();
+
   this.progress = 0;
   this.progressText = '0%';
   this.attempts = [];
-  this.index = 0;         // optional: mulai dari soal pertama
+  this.index = 0;
+
   this.loadCurrent();
   this.startTimer();
 },
 
+showToast(message, type = 'success'){
+  this.toast.message = message;
+  this.toast.type = type;
+  this.toast.show = true;
+
+  setTimeout(() => {
+    this.toast.show = false;
+  }, 1200);
+},
+
+startSessionTimer(){
+  if(this.sessionTimerId) clearInterval(this.sessionTimerId);
+
+  this.sessionTimerId = setInterval(() => {
+    this.sessionTimeLeft--;
+
+    if(this.sessionTimeLeft <= 0){
+      clearInterval(this.sessionTimerId);
+      clearInterval(this.timerId);
+      this.finishSession();
+    }
+  }, 1000);
+},
+
     loadCurrent(){
   this.highlightClass = '';
-  this.wrongCount = 0; // 🔥 reset salah per soal
+  this.wrongCount = 0;
+  this.lockedSlots = []; // 🔥 reset hint
 
   this.current = this.questions[this.index];
   if(!this.current) return;
@@ -135,6 +240,7 @@ function guessSingle(){
   this.slots = Array.from({ length: totalSlots }).map(() => '');
   this.timeLeft = this.current.time_limit_seconds ?? 16;
 },
+
     startTimer(){
       if(this.timerId) clearInterval(this.timerId);
       this.timerId = setInterval(()=>{
@@ -190,20 +296,34 @@ function guessSingle(){
     }, 700);
 
   } else {
-    // ❌ SALAH
-    this.highlightClass = 'border-2 border-red-500 bg-red-50';
-    this.attempts.push({correct:false});
-    this.wrongCount++;
+  // ❌ SALAH
+  this.shakeInputs = true;
+  this.highlightClass = 'border-2 border-red-500 bg-red-50';
+  this.attempts.push({correct:false});
+  this.wrongCount++;
 
-    // 🔥 kosongkan input
-    setTimeout(() => {
-      this.slots = this.slots.map(() => '');
-      this.highlightClass = '';
-    }, 500);
+  // 🔓 Salah ke-5 → buka hint
+  if(this.wrongCount === 5){
+    const firstChar = this.current.answer_text
+      .replace(/\s+/g,'')
+      .charAt(0)
+      .toUpperCase();
 
-    // ⛔ TIDAK PINDAH SOAL
-    this.startTimer();
+    this.slots[0] = firstChar;
+    this.lockedSlots = [0];
   }
+
+  setTimeout(() => {
+    // 🔥 kosongkan slot KECUALI yang terkunci
+    this.slots = this.slots.map((v,i) =>
+      this.lockedSlots.includes(i) ? v : ''
+    );
+    this.highlightClass = '';
+    this.shakeInputs = false;
+  }, 500);
+
+  this.startTimer();
+}
 })
 
   .catch(()=>{
@@ -215,7 +335,31 @@ function guessSingle(){
       this.nextOrFinish();
   });
 },
+skip(){
+  clearInterval(this.timerId);
+
+  // cari soal berikutnya yang BELUM benar
+  let nextIndex = this.index + 1;
+
+  while(
+    nextIndex < this.questions.length &&
+    this.answeredCorrectIds.includes(this.questions[nextIndex].id)
+  ){
+    nextIndex++;
+  }
+
+  if(nextIndex >= this.questions.length){
+    this.computeSummary();
+    this.showSummary = true;
+    return;
+  }
+
+  this.index = nextIndex;
+  this.loadCurrent();
+  this.startTimer();
+},
     onTimeout(){
+  if(this.sessionTimeLeft <= 0) return;
   this.attempts.push({correct:false});
   this.index++;
 
@@ -245,12 +389,35 @@ function guessSingle(){
         }
       },700);
     },
+
     computeSummary(){
-      const total = this.attempts.length;
-      const correct = this.attempts.filter(a=>a.correct).length;
-      this.summary = {correct: correct, wrong: total - correct, total: total};
-    }
+  const totalPlayed = this.attempts.length;
+  const correct = this.attempts.filter(a => a.correct).length;
+
+  this.summary = {
+    correct: correct,
+    wrong: totalPlayed - correct,
+    total: totalPlayed
+  };
+},
+
+    finishSession(){
+  this.computeSummary();
+  this.showSummary = true;
+},
+
   }
 }
 </script>
 @endsection
+
+<style>
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-4px); }
+  75% { transform: translateX(4px); }
+}
+.shake {
+  animation: shake 0.25s ease-in-out;
+}
+</style>

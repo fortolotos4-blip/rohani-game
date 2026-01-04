@@ -16,7 +16,7 @@
       👤 <b x-text="player2 || 'Menunggu…'"></b>
     </div>
     <div><p>Bagikan code ini</p></div>
-    <div><b><h5>{{room_code}}</h5></b></div>
+    <div><b><h4>{{$room->room_code}}</h4></b></div>
   </div>
 
   <!-- ================= RPS POPUP ================= -->

@@ -121,17 +121,24 @@
       <div class="text-lg" x-text="current ? current.prompt || '' : ''"></div>
     </div>
 
-    <!-- INPUT SLOTS -->
 
 <!-- INPUT SLOTS -->
 <div
-  class="flex flex-wrap justify-center gap-2 max-w-md mx-auto"
+  class="
+    grid gap-2 justify-center
+    max-w-full mx-auto
+  "
+  :style="`
+    grid-template-columns: repeat(
+      auto-fit,
+      minmax(36px, 1fr)
+    );
+    max-width: ${Math.min(slots.length * 44, 360)}px;
+  `"
   :class="{
-    'shake shake-error': shakeInputs && shakeType === 'error',
-    'pulse-success': shakeInputs && shakeType === 'success'
+    'shake': shakeInputs
   }"
 >
-
   <template x-for="(slot, i) in slots" :key="i">
     <input
       type="text"
@@ -140,19 +147,18 @@
       :disabled="lockedSlots.includes(i)"
       @input="onCharInput(i)"
       class="
-        text-center border rounded font-bold uppercase
-        w-8 h-8
-        sm:w-9 sm:h-9
-        md:w-10 md:h-10
+        w-9 h-9
+        sm:w-10 sm:h-10
+        text-center
+        font-bold uppercase
+        border rounded
         transition
       "
-      :class="`
-        ${lockedSlots.includes(i) ? 'bg-gray-200 text-gray-700' : 'bg-white'}
-        ${highlightClass}
-      `"
+      :class="getSlotClass(i)"
     />
   </template>
 </div>
+
 
 
     <div class="mt-4 flex justify-center gap-3">
@@ -231,6 +237,22 @@ pickRandomQuestion(){
   const totalSlots = this.current.answer_slots ?? 0;
   this.slots = Array.from({ length: totalSlots }).map(() => '');
   this.timeLeft = this.current.time_limit_seconds ?? 16;
+},
+
+getSlotClass(i){
+  if(this.lockedSlots.includes(i)){
+    return 'bg-gray-200 border-gray-400 text-gray-700';
+  }
+
+  if(this.shakeInputs && this.shakeType === 'error'){
+    return 'border-red-500 bg-red-50';
+  }
+
+  if(this.shakeInputs && this.shakeType === 'success'){
+    return 'border-green-500 bg-green-50';
+  }
+
+  return 'border-gray-300 bg-white';
 },
 
     
@@ -324,7 +346,6 @@ startSessionTimer(){
   if(correct){
   this.shakeInputs = true;
   this.shakeType = 'success';
-  this.showToast('Jawaban benar 🎉','success');
   this.highlightClass = 'border-2 border-green-500 bg-green-50';
 
   this.attempts.push({correct:true});
@@ -348,12 +369,10 @@ startSessionTimer(){
   return;
 } else {
   // ❌ SALAH
-  // ❌ SALAH
 this.shakeInputs = true;
 this.shakeType = 'error';
 
 this.highlightClass = 'border-2 border-red-500 bg-red-50';
-this.showToast('Jawaban salah 😅','error');
 
 this.attempts.push({correct:false});
 this.wrongCount++;
@@ -466,28 +485,11 @@ updateProgress(){
 <style>
 @keyframes shake {
   0%, 100% { transform: translateX(0); }
-  25% { transform: translateX(-5px); }
-  75% { transform: translateX(5px); }
+  25% { transform: translateX(-4px); }
+  75% { transform: translateX(4px); }
 }
 
 .shake {
-  animation: shake 0.3s ease-in-out;
+  animation: shake 0.25s ease-in-out;
 }
-
-/* ❌ SALAH */
-.shake-error {
-  box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.6); /* red */
-}
-
-/* ✅ BENAR */
-@keyframes pulse {
-  0% { box-shadow: 0 0 0 0 rgba(34,197,94,.7); }
-  70% { box-shadow: 0 0 0 8px rgba(34,197,94,0); }
-  100% { box-shadow: 0 0 0 0 rgba(34,197,94,0); }
-}
-
-.pulse-success {
-  animation: pulse 0.6s ease-out;
-}
-
 </style>

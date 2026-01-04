@@ -154,6 +154,42 @@ class QuizSeeder extends Seeder
                     ['Thomas, Yohanes dan Petrus', 0],
                 ]
             ],
+            [
+                'prompt' => 'Kepada siapa Tuhan Yesus memperlihatkan Musa dan Elia?',
+                'answer_text' => 'Petrus, Yakobus dan Yohanes',
+                'explanation' => 'Yesus menampakkan diri di atas gunung.',
+                'image_path' => 'questions/ketigamurid.jpg',
+                'choices' => [
+                    ['Sadrakh, Mesakh dan Abednego', 0],
+                    ['Ketiga orang Majus', 0],
+                    ['Petrus, Yakobus dan Yohanes', 1],
+                    ['Thomas, Yohanes dan Petrus', 0],
+                ]
+            ],
+            [
+                'prompt' => 'Kepada siapa Tuhan Yesus memperlihatkan Musa dan Elia?',
+                'answer_text' => 'Petrus, Yakobus dan Yohanes',
+                'explanation' => 'Yesus menampakkan diri di atas gunung.',
+                'image_path' => 'questions/ketigamurid.jpg',
+                'choices' => [
+                    ['Sadrakh, Mesakh dan Abednego', 0],
+                    ['Ketiga orang Majus', 0],
+                    ['Petrus, Yakobus dan Yohanes', 1],
+                    ['Thomas, Yohanes dan Petrus', 0],
+                ]
+            ],
+            [
+                'prompt' => 'Kepada siapa Tuhan Yesus memperlihatkan Musa dan Elia?',
+                'answer_text' => 'Petrus, Yakobus dan Yohanes',
+                'explanation' => 'Yesus menampakkan diri di atas gunung.',
+                'image_path' => 'questions/ketigamurid.jpg',
+                'choices' => [
+                    ['Sadrakh, Mesakh dan Abednego', 0],
+                    ['Ketiga orang Majus', 0],
+                    ['Petrus, Yakobus dan Yohanes', 1],
+                    ['Thomas, Yohanes dan Petrus', 0],
+                ]
+            ],
         ];
 
         /*

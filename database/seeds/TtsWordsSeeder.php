@@ -72,7 +72,7 @@ class TtsWordsSeeder extends Seeder
             ['SESAWI', 'Matius 13 : 31 Tuhan Menjelaskan Perumpamaan Biji', 'konsep', 'hard'],
             ['ALKITAB', 'Semua Firman Tuhan Yesus ditulis', 'konsep', 'hard'],
             ['MIKHA', 'Nabi PL yang menegur ketidakadilan dan menubuatkan kelahiran Mesias di Betlehem', 'tokoh', 'hard'],
-            ['NAHUM', 'Nabi PL yang menubuatkan kejatuhan kota Niniwe'],
+            ['NAHUM', 'Nabi PL yang menubuatkan kejatuhan kota Niniwe','konsep','hard'],
         ];
 
         foreach ($words as [$word, $clue, $category, $difficulty]) {

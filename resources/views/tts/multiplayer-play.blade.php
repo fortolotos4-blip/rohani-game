@@ -11,7 +11,7 @@
     <!-- LEFT : ROOM INFO -->
     <div class="text-center md:text-left">
       <div>
-        👤 <b x-text="player1"></b><br><b>VS</b><br>👤 <b x-text="player2 || 'Menunggu…'"></b>
+        👤 <b x-text="player1"> VS</b><b>VS</b>👤 <b x-text="player2 || 'Menunggu…'"></b>
       </div>
       <div>
         Status: <b x-text="status"></b>
@@ -21,7 +21,7 @@
     <!-- CENTER : SHARE CODE -->
     <div class="text-center">
       <p class="text-xs text-gray-500 mb-1">
-        Bagikan kode ini untuk bermain :
+        Bagikan kode ini untuk bermain
       </p>
       <div
       @click="navigator.clipboard.writeText('{{ $room->room_code }}')"
@@ -29,9 +29,6 @@
          bg-white border rounded shadow-sm hover:bg-gray-100">
         {{ $room->room_code }}
       </div>
-      <p class="text-xs text-gray-400 mt-1">
-  Klik untuk menyalin
-</p>
     </div>
 
   </div>

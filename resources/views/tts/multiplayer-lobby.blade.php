@@ -11,7 +11,14 @@
 <button class="bg-green-600 text-white w-full py-2">Buat Room</button>
 </form>
 
-<hr class="my-4">
+<div class="flex items-center my-6">
+  <div class="flex-grow border-t"></div>
+  <span class="mx-4 text-xs text-gray-500 font-semibold">
+    ATAU
+  </span>
+  <div class="flex-grow border-t"></div>
+</div>
+
 
 <form method="POST" action="/tts/room/join">
 @csrf

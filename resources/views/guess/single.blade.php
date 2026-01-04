@@ -1,7 +1,12 @@
 @extends('layouts.app')
 
 @section('content')
-<div x-data="guessSingle()" x-init="init()" class="max-w-3xl mx-auto p-4">
+<div
+  x-data="guessSingle()"
+  x-init="init()"
+  class="max-w-3xl mx-auto p-4 overflow-x-hidden"
+>
+
   <!-- TOAST -->
 <div
   x-show="toast.show"
@@ -68,7 +73,7 @@
 </div>
 
   <!-- Main UI -->
-  <div class="bg-white p-4 sm:p-6 rounded shadow max-w-xl mx-auto overflow-hidden">
+  <div class="bg-white p-4 sm:p-6 rounded shadow max-w-xl mx-auto">
 
 <!-- HEADER TIMER (SINGLE MODE) -->
 <div class="flex justify-between items-center mb-4 text-sm">
@@ -113,9 +118,19 @@
     </div>
 
 
-<!-- INPUT SLOTS : ONE ROW, NO OVERFLOW -->
+<!-- INPUT SLOTS : SAFE HORIZONTAL SCROLL -->
 <div
-  class="flex justify-center gap-2 max-w-full overflow-hidden"
+  class="
+    grid
+    grid-flow-col
+    auto-cols-max
+    justify-center
+    gap-2
+    max-w-full
+    overflow-x-auto
+    px-2
+    scrollbar-thin
+  "
 >
   <template x-for="(slot, i) in slots" :key="i">
     <input
@@ -127,7 +142,8 @@
       :style="slotStyle"
       class="
         text-center font-bold uppercase
-        border rounded transition
+        border rounded
+        transition
       "
       :class="getSlotClass(i)"
     />
@@ -394,20 +410,9 @@ skip(){
 },
 
 get slotStyle(){
-  const count = this.slots.length;
-
-  // ukuran dasar
-  let size = 40;
-
-  if(count >= 10) size = 34;
-  if(count >= 12) size = 30;
-  if(count >= 15) size = 26;
-
   return `
-    width: ${size}px;
-    height: ${size}px;
-    min-width: ${size}px;
-    min-height: ${size}px;
+    width: clamp(28px, 6vw, 40px);
+    height: clamp(28px, 6vw, 40px);
   `;
 },
 

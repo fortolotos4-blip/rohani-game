@@ -18,7 +18,6 @@ class GuessController extends Controller
 {
     $questions = Question::where('image_path', 'like', 'guess/%')
         ->inRandomOrder()
-        ->limit(5)
         ->get()
         ->map(function ($q) {
             return [
@@ -26,7 +25,7 @@ class GuessController extends Controller
                 'image_path' => $q->image_path,
                 'answer_text' => $q->answer_text,
                 'answer_slots' => $q->answer_slots,
-                'time_limit_seconds' => $q->time_limit_seconds ?? 45,
+                'time_limit_seconds' => $q->time_limit_seconds ?? 60,
             ];
         })
         ->toArray();

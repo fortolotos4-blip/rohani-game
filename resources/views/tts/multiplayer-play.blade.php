@@ -5,19 +5,46 @@
      class="max-w-6xl mx-auto p-4 sm:p-6 bg-white rounded shadow">
 
   <!-- ================= ROOM INFO ================= -->
-  <div class="flex flex-col sm:flex-row sm:justify-between gap-2 mb-4 text-sm text-gray-700">
-    <div>
-      Room: <b>{{ $room->room_code }}</b> |
-      Status: <b x-text="status"></b>
+<div class="mb-6 bg-gray-50 border rounded-lg p-4">
+  <div class="grid grid-cols-1 md:grid-cols-3 items-center gap-4 text-sm text-gray-700">
+
+    <!-- LEFT : ROOM INFO -->
+    <div class="text-center md:text-left">
+      <div>
+        Room: <b>{{ $room->room_code }}</b>
+      </div>
+      <div>
+        Status: <b x-text="status"></b>
+      </div>
     </div>
-    <div>
-      👤 <b x-text="player1"></b>
-      VS
-      👤 <b x-text="player2 || 'Menunggu…'"></b>
+
+    <!-- CENTER : SHARE CODE -->
+    <div class="text-center">
+      <p class="text-xs text-gray-500 mb-1">
+        Bagikan kode ini kepada teman
+      </p>
+      <div
+        class="inline-block px-6 py-2 text-lg font-bold tracking-widest
+               bg-white border rounded shadow-sm select-all">
+        {{ $room->room_code }}
+      </div>
     </div>
-    <div><p>Bagikan code ini</p></div>
-    <div><b><h4>{{$room->room_code}}</h4></b></div>
+
+    <!-- RIGHT : PLAYER INFO -->
+    <div class="text-center md:text-right">
+      <div>
+        👤 <b x-text="player1"></b>
+      </div>
+      <div>
+        VS
+      </div>
+      <div>
+        👤 <b x-text="player2 || 'Menunggu…'"></b>
+      </div>
+    </div>
+
   </div>
+</div>
 
   <!-- ================= RPS POPUP ================= -->
   <div x-show="status === 'rps'"

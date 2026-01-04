@@ -123,21 +123,13 @@
 
 
 <!-- INPUT SLOTS -->
+<!-- INPUT SLOTS : ONE ROW ALWAYS -->
 <div
-  class="
-    grid gap-2 justify-center
-    max-w-full mx-auto
-  "
+  class="flex justify-center gap-2 overflow-hidden"
   :style="`
-    grid-template-columns: repeat(
-      auto-fit,
-      minmax(36px, 1fr)
-    );
-    max-width: ${Math.min(slots.length * 44, 360)}px;
+    transform: scale(${Math.min(1, 360 / (slots.length * 44))});
+    transform-origin: center;
   `"
-  :class="{
-    'shake': shakeInputs
-  }"
 >
   <template x-for="(slot, i) in slots" :key="i">
     <input
@@ -158,8 +150,6 @@
     />
   </template>
 </div>
-
-
 
     <div class="mt-4 flex justify-center gap-3">
       <button 

@@ -123,11 +123,16 @@
     </div>
 
     <!-- INPUT SLOTS -->
-    <!-- INPUT SLOTS (RESPONSIVE + SHAKE BENAR) -->
+
+<!-- INPUT SLOTS -->
 <div
   class="flex flex-wrap justify-center gap-2 max-w-md mx-auto"
-  :class="shakeInputs ? 'shake' : ''"
+  :class="{
+    'shake shake-error': shakeInputs && shakeType === 'error',
+    'pulse-success': shakeInputs && shakeType === 'success'
+  }"
 >
+
   <template x-for="(slot, i) in slots" :key="i">
     <input
       type="text"
@@ -177,6 +182,8 @@ function guessSingle(){
     answeredCorrectIds: [], // id soal yang sudah benar
     lockedSlots: [],   // index slot yang dikunci (hint)
     sessionTimeLeft: 300,   // 5 menit (300 detik)
+    availableQuestions: [], // soal yang belum dijawab benar
+
     sessionTimerId: null,
     summary: { correct: 0, wrong: 0, total: 0 }, // ✅ FIX
     questions: @json($questions ?? []),
@@ -193,6 +200,8 @@ function guessSingle(){
     attempts: [], // {correct:bool}
     highlightClass: '',
     shakeInputs: false,
+    shakeType: null, // 'error' | 'success'
+
 
     toast: {
   show: false,
@@ -201,26 +210,46 @@ function guessSingle(){
 },
 
     init(){
-      if(this.questions.length) {
-        this.current = this.questions[0];
-        this.total = this.questions.length;
-      }
-    },
+  this.availableQuestions = [...this.questions];
+  this.pickRandomQuestion();
+},
+
+pickRandomQuestion(){
+  // 🔥 Jika semua soal sudah benar → selesai
+  if(this.availableQuestions.length === 0){
+    this.finishSession();
+    return;
+  }
+
+  const randomIndex = Math.floor(
+    Math.random() * this.availableQuestions.length
+  );
+
+  this.current = this.availableQuestions[randomIndex];
+  this.wrongCount = 0;
+  this.lockedSlots = [];
+  this.highlightClass = '';
+
+  const totalSlots = this.current.answer_slots ?? 0;
+  this.slots = Array.from({ length: totalSlots }).map(() => '');
+  this.timeLeft = this.current.time_limit_seconds ?? 16;
+},
+
     
     start(){
   this.showRules = false;
 
-  this.sessionTimeLeft = 300; // reset 5 menit
+  this.sessionTimeLeft = 300;
   this.startSessionTimer();
 
-  this.progress = 0;
-  this.progressText = '0%';
   this.attempts = [];
-  this.index = 0;
+  this.answeredCorrectIds = [];
+  this.availableQuestions = [...this.questions];
 
-  this.loadCurrent();
+  this.pickRandomQuestion();
   this.startTimer();
 },
+,
 
 showToast(message, type = 'success'){
   this.toast.message = message;
@@ -296,29 +325,42 @@ startSessionTimer(){
   const correct = !!data.correct;
 
   if(correct){
-    // ✅ BENAR
-    this.highlightClass = 'border-2 border-green-500 bg-green-50';
-    this.attempts.push({correct:true});
-    this.answeredCorrectIds.push(this.current.id);
-
-    this.progress = Math.round(
-      (this.attempts.filter(a=>a.correct).length / this.questions.length) * 100
-    );
-    this.progressText = this.progress + '%';
-
-    // lanjut soal
-    setTimeout(() => {
-      this.index++;
-      this.loadCurrent();
-      this.startTimer();
-    }, 700);
-
-  } else {
-  // ❌ SALAH
   this.shakeInputs = true;
-  this.highlightClass = 'border-2 border-red-500 bg-red-50';
-  this.attempts.push({correct:false});
-  this.wrongCount++;
+  this.shakeType = 'success';
+  this.showToast('Jawaban benar 🎉','success');
+  this.highlightClass = 'border-2 border-green-500 bg-green-50';
+
+  this.attempts.push({correct:true});
+  this.answeredCorrectIds.push(this.current.id);
+
+  // 🔥 HAPUS soal ini dari pool
+  this.availableQuestions = this.availableQuestions.filter(
+    q => q.id !== this.current.id
+  );
+
+  this.updateProgress();
+
+  setTimeout(() => {
+  this.shakeInputs = false;
+  this.shakeType = null;
+
+  this.pickRandomQuestion();
+  this.startTimer();
+  }, 700);
+
+  return;
+} else {
+  // ❌ SALAH
+  // ❌ SALAH
+this.shakeInputs = true;
+this.shakeType = 'error';
+
+this.highlightClass = 'border-2 border-red-500 bg-red-50';
+this.showToast('Jawaban salah 😅','error');
+
+this.attempts.push({correct:false});
+this.wrongCount++;
+
 
   // 🔓 Salah ke-5 → buka hint
   if(this.wrongCount === 5){
@@ -338,6 +380,7 @@ startSessionTimer(){
     );
     this.highlightClass = '';
     this.shakeInputs = false;
+    this.shakeType = null;
   }, 500);
 
   this.startTimer();
@@ -356,39 +399,30 @@ startSessionTimer(){
 skip(){
   clearInterval(this.timerId);
 
-  // cari soal berikutnya yang BELUM benar
-  let nextIndex = this.index + 1;
-
-  while(
-    nextIndex < this.questions.length &&
-    this.answeredCorrectIds.includes(this.questions[nextIndex].id)
-  ){
-    nextIndex++;
-  }
-
-  if(nextIndex >= this.questions.length){
-    this.computeSummary();
-    this.showSummary = true;
+  if(this.availableQuestions.length <= 1){
+    // hanya tersisa 1 soal → lanjutkan saja
+    this.startTimer();
     return;
   }
 
-  this.index = nextIndex;
-  this.loadCurrent();
+  this.pickRandomQuestion();
   this.startTimer();
 },
+
     onTimeout(){
   if(this.sessionTimeLeft <= 0) return;
-  this.attempts.push({correct:false});
-  this.index++;
 
-  if(this.index >= this.questions.length){
-    this.computeSummary();
-    this.showSummary = true;
-  } else {
-    this.loadCurrent();
-    this.startTimer();
-  }
+  this.attempts.push({correct:false});
+  this.pickRandomQuestion();
+  this.startTimer();
 },
+
+updateProgress(){
+  const correct = this.attempts.filter(a => a.correct).length;
+  this.progress = Math.round((correct / this.questions.length) * 100);
+  this.progressText = this.progress + '%';
+},
+
     restart(){
       this.showFail = false;
       this.loadCurrent();
@@ -420,6 +454,9 @@ skip(){
 },
 
     finishSession(){
+  clearInterval(this.timerId);
+  clearInterval(this.sessionTimerId);
+
   this.computeSummary();
   this.showSummary = true;
 },
@@ -432,10 +469,28 @@ skip(){
 <style>
 @keyframes shake {
   0%, 100% { transform: translateX(0); }
-  25% { transform: translateX(-4px); }
-  75% { transform: translateX(4px); }
+  25% { transform: translateX(-5px); }
+  75% { transform: translateX(5px); }
 }
+
 .shake {
-  animation: shake 0.25s ease-in-out;
+  animation: shake 0.3s ease-in-out;
 }
+
+/* ❌ SALAH */
+.shake-error {
+  box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.6); /* red */
+}
+
+/* ✅ BENAR */
+@keyframes pulse {
+  0% { box-shadow: 0 0 0 0 rgba(34,197,94,.7); }
+  70% { box-shadow: 0 0 0 8px rgba(34,197,94,0); }
+  100% { box-shadow: 0 0 0 0 rgba(34,197,94,0); }
+}
+
+.pulse-success {
+  animation: pulse 0.6s ease-out;
+}
+
 </style>

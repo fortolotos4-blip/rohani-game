@@ -10,7 +10,7 @@
 <body class="bg-gray-100 min-h-screen">
   <div class="flex">
     @if(View::hasSection('sidebar'))
-      <aside class="w-60 bg-white border-r p-4 min-h-screen">
+      <aside class="w-60 bg-white border-r p-4 min-h-screen overflow-x-hidden">
         <h3 class="font-bold mb-4">Menu</h3>
         @yield('sidebar')
       </aside>

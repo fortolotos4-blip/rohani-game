@@ -68,8 +68,9 @@
 </div>
 
   <!-- Main UI -->
-  <div class="bg-white p-6 rounded shadow">
-    
+  <div class="bg-white p-4 sm:p-6 rounded shadow max-w-xl mx-auto">
+
+
     <!-- HEADER TIMER -->
 <div class="flex justify-between items-center mb-4 text-sm">
 
@@ -103,7 +104,16 @@
   :src="current.image_path 
     ? '{{ asset('') }}' + current.image_path 
     : '{{ asset('images/placeholder.png') }}'"
-  class="max-h-[420px] w-auto object-contain mx-auto rounded-lg shadow"
+  class="
+  max-h-[220px]
+  sm:max-h-[300px]
+  md:max-h-[360px]
+  w-auto
+  object-contain
+  mx-auto
+  rounded-lg
+  shadow
+"
 />
 
     </div>
@@ -113,27 +123,35 @@
     </div>
 
     <!-- INPUT SLOTS -->
-    <div class="flex justify-center gap-2">
-      <div class="flex justify-center gap-2"
-     :class="shakeInputs ? 'shake' : ''">
+    <!-- INPUT SLOTS (RESPONSIVE + SHAKE BENAR) -->
+<div
+  class="flex flex-wrap justify-center gap-2 max-w-md mx-auto"
+  :class="shakeInputs ? 'shake' : ''"
+>
+  <template x-for="(slot, i) in slots" :key="i">
+    <input
+      type="text"
+      maxlength="1"
+      x-model="slots[i]"
+      :disabled="lockedSlots.includes(i)"
+      @input="onCharInput(i)"
+      class="
+        text-center border rounded font-bold uppercase
+        w-8 h-8
+        sm:w-9 sm:h-9
+        md:w-10 md:h-10
+        transition
+      "
+      :class="`
+        ${lockedSlots.includes(i) ? 'bg-gray-200 text-gray-700' : 'bg-white'}
+        ${highlightClass}
+      `"
+    />
+  </template>
+</div>
 
-      <template x-for="(slot, i) in slots" :key="i">
-        <input type="text"
-        maxlength="1"
-        x-model="slots[i]"
-        :disabled="lockedSlots.includes(i)"
-        @input="onCharInput(i)"
-        :class="`
-          w-10 h-10 text-center border rounded
-          ${lockedSlots.includes(i) ? 'bg-gray-200 font-bold' : ''}
-          ${highlightClass}
-        `"
-        />
 
-      </template>
-    </div>
-
-    <div class="mt-4 text-center">
+    <div class="mt-4 flex justify-center gap-3">
       <button 
   @click="submit()" 
   :disabled="slots.some(s => !s)"

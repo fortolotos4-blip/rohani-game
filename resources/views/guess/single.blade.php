@@ -90,6 +90,9 @@ Submit
 <script>
 function guessSingle(){
   return {
+    wrongCount: 0,        // jumlah salah di soal ini
+    answeredCorrectIds: [], // id soal yang sudah benar
+
     summary: { correct: 0, wrong: 0, total: 0 }, // ✅ FIX
     questions: @json($questions ?? []),
     index: 0,
@@ -122,13 +125,16 @@ function guessSingle(){
 },
 
     loadCurrent(){
-      this.highlightClass = '';
-      this.current = this.questions[this.index];
-      // prepare input slots based on answer length (strip spaces)
-      const totalSlots = this.current.answer_slots ?? 0;
-      this.slots = Array.from({ length: totalSlots }).map(() => '');
-      this.timeLeft = this.current.time_limit_seconds ?? 16;
-    },
+  this.highlightClass = '';
+  this.wrongCount = 0; // 🔥 reset salah per soal
+
+  this.current = this.questions[this.index];
+  if(!this.current) return;
+
+  const totalSlots = this.current.answer_slots ?? 0;
+  this.slots = Array.from({ length: totalSlots }).map(() => '');
+  this.timeLeft = this.current.time_limit_seconds ?? 16;
+},
     startTimer(){
       if(this.timerId) clearInterval(this.timerId);
       this.timerId = setInterval(()=>{
@@ -162,21 +168,44 @@ function guessSingle(){
     body: JSON.stringify(payload)
   })
   .then(r=>r.json())
-  .then(data=>{
-      const correct = !!data.correct;
-      this.attempts.push({correct});
+  .then(data => {
+  const correct = !!data.correct;
 
-      // ⭐ update progress setiap submit (benar / salah)
-      this.progress = Math.round( (this.attempts.filter(a=>a.correct).length / this.questions.length) * 100 );
-      this.progressText = this.progress + '%';
+  if(correct){
+    // ✅ BENAR
+    this.highlightClass = 'border-2 border-green-500 bg-green-50';
+    this.attempts.push({correct:true});
+    this.answeredCorrectIds.push(this.current.id);
 
-      // ⭐ highlight box
-      this.highlightClass = correct 
-          ? 'border-2 border-green-500 bg-green-50' 
-          : 'border-2 border-red-500 bg-red-50';
+    this.progress = Math.round(
+      (this.attempts.filter(a=>a.correct).length / this.questions.length) * 100
+    );
+    this.progressText = this.progress + '%';
 
-      this.nextOrFinish();
-  })
+    // lanjut soal
+    setTimeout(() => {
+      this.index++;
+      this.loadCurrent();
+      this.startTimer();
+    }, 700);
+
+  } else {
+    // ❌ SALAH
+    this.highlightClass = 'border-2 border-red-500 bg-red-50';
+    this.attempts.push({correct:false});
+    this.wrongCount++;
+
+    // 🔥 kosongkan input
+    setTimeout(() => {
+      this.slots = this.slots.map(() => '');
+      this.highlightClass = '';
+    }, 500);
+
+    // ⛔ TIDAK PINDAH SOAL
+    this.startTimer();
+  }
+})
+
   .catch(()=>{
       // treat as wrong
       this.attempts.push({correct:false});
@@ -187,9 +216,17 @@ function guessSingle(){
   });
 },
     onTimeout(){
-      this.attempts.push({correct:false});
-      this.showFail = true;
-    },
+  this.attempts.push({correct:false});
+  this.index++;
+
+  if(this.index >= this.questions.length){
+    this.computeSummary();
+    this.showSummary = true;
+  } else {
+    this.loadCurrent();
+    this.startTimer();
+  }
+},
     restart(){
       this.showFail = false;
       this.loadCurrent();

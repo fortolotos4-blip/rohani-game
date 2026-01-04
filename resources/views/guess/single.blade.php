@@ -99,24 +99,23 @@
 </div>
 
 
-    <div class="flex justify-center mb-4">
-      <img 
-  :src="current.image_path 
-    ? '{{ asset('') }}' + current.image_path 
-    : '{{ asset('images/placeholder.png') }}'"
-  class="
-  max-h-[220px]
-  sm:max-h-[300px]
-  md:max-h-[360px]
-  w-auto
-  object-contain
-  mx-auto
-  rounded-lg
-  shadow
-"
-/>
-
-    </div>
+    <div class="flex justify-center mb-4" x-show="current">
+  <img 
+    :src="current.image_path 
+      ? '{{ asset('') }}' + current.image_path 
+      : '{{ asset('images/placeholder.png') }}'"
+    class="
+      max-h-[220px]
+      sm:max-h-[300px]
+      md:max-h-[360px]
+      w-auto
+      object-contain
+      mx-auto
+      rounded-lg
+      shadow
+    "
+  />
+</div>
 
     <div class="mb-4 text-center">
       <div class="text-lg" x-text="current ? current.prompt || '' : ''"></div>
@@ -211,7 +210,6 @@ function guessSingle(){
 
     init(){
   this.availableQuestions = [...this.questions];
-  this.pickRandomQuestion();
 },
 
 pickRandomQuestion(){
@@ -249,7 +247,6 @@ pickRandomQuestion(){
   this.pickRandomQuestion();
   this.startTimer();
 },
-,
 
 showToast(message, type = 'success'){
   this.toast.message = message;

@@ -11,7 +11,9 @@
     <!-- LEFT : ROOM INFO -->
     <div class="text-center md:text-left">
       <div>
-        👤 <b x-text="player1"> VS</b><b>VS</b>👤 <b x-text="player2 || 'Menunggu…'"></b>
+        👤 <b x-text="player1"></b>
+        <span class="mx-1">VS</span>
+        👤 <b x-text="player2 || 'Menunggu…'"></b>
       </div>
       <div>
         Status: <b x-text="status"></b>

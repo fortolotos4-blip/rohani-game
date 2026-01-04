@@ -33,25 +33,38 @@
     </div>
   </template>
 
-  <!-- MODE PLAYING (RINGKAS) -->
-  <template x-if="status === 'playing'">
+ <!-- MODE PLAYING (MINIMAL, SEIMBANG) -->
+<template x-if="status === 'playing'">
+  <div
+    class="flex justify-between items-center
+           bg-white border rounded px-3 py-2 text-xs text-gray-600">
+
+    <!-- LEFT : ROOM -->
     <div
-      class="flex flex-wrap justify-between items-center
-             bg-white border rounded px-3 py-2 text-sm text-gray-700">
+      class="relative group cursor-pointer font-semibold
+             px-2 py-1 rounded bg-gray-100 hover:bg-gray-200 text-gray-700"
+      @click="navigator.clipboard.writeText('{{ $room->room_code }}')">
 
-      <div class="flex items-center gap-2 font-semibold">
-        👤 <span x-text="player1"></span>
-        <span class="text-gray-400">VS</span>
-        👤 <span x-text="player2"></span>
-        <span class="ml-2 text-xs text-green-600">● Playing</span>
+      Room: {{ $room->room_code }}
+
+      <!-- TOOLTIP -->
+      <div
+        class="absolute left-0 top-full mt-2 w-max
+               bg-black text-white text-[11px]
+               px-3 py-1 rounded opacity-0
+               group-hover:opacity-100 transition pointer-events-none">
+        Klik untuk menyalin kode room
       </div>
-
-      <div class="text-xs text-gray-500">
-        Room: <b>{{ $room->room_code }}</b>
-      </div>
-
     </div>
-  </template>
+
+    <!-- RIGHT : STATUS -->
+    <div class="flex items-center gap-1 font-semibold text-green-600">
+      <span class="text-xs">●</span>
+      Playing
+    </div>
+
+  </div>
+</template>
 
 </div>
 

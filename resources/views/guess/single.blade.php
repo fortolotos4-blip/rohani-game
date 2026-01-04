@@ -68,35 +68,26 @@
 </div>
 
   <!-- Main UI -->
-  <div class="bg-white p-4 sm:p-6 rounded shadow max-w-xl mx-auto">
+  <div class="bg-white p-4 sm:p-6 rounded shadow max-w-xl mx-auto overflow-hidden">
 
-
-    <!-- HEADER TIMER -->
+<!-- HEADER TIMER (SINGLE MODE) -->
 <div class="flex justify-between items-center mb-4 text-sm">
 
-  <!-- LEFT -->
-  <div class="space-x-4">
-    <span>
-      ⏱️ Soal:
-      <b :class="timeLeft <= 5 ? 'text-red-600' : ''"
-         x-text="timeLeft"></b>s
-    </span>
-
-    <span>
-      ⏳ Sesi:
-      <b x-text="sessionTimeLeft"></b>s
-    </span>
+  <!-- LEFT : SOAL -->
+  <div>
+    ⏱️ Soal:
+    <b :class="timeLeft <= 5 ? 'text-red-600' : ''"
+       x-text="timeLeft"></b>s
   </div>
 
-  <!-- RIGHT : PROGRESS -->
-  <div class="w-32 bg-gray-200 rounded h-3 relative">
-    <div :style="`width:${progress}%`"
-         class="absolute left-0 top-0 bottom-0 bg-green-500 rounded transition-all"></div>
-    <div class="absolute inset-0 text-[10px] text-white font-bold flex items-center justify-center"
-         x-text="progressText"></div>
+  <!-- RIGHT : SESI -->
+  <div>
+    ⏳ Sesi:
+    <b x-text="sessionTimeLeft"></b>s
   </div>
 
 </div>
+
 
 
     <div class="flex justify-center mb-4" x-show="current">
@@ -122,14 +113,9 @@
     </div>
 
 
-<!-- INPUT SLOTS -->
-<!-- INPUT SLOTS : ONE ROW ALWAYS -->
+<!-- INPUT SLOTS : ONE ROW, NO OVERFLOW -->
 <div
-  class="flex justify-center gap-2 overflow-hidden"
-  :style="`
-    transform: scale(${Math.min(1, 360 / (slots.length * 44))});
-    transform-origin: center;
-  `"
+  class="flex justify-center gap-2 max-w-full overflow-hidden"
 >
   <template x-for="(slot, i) in slots" :key="i">
     <input
@@ -138,18 +124,16 @@
       x-model="slots[i]"
       :disabled="lockedSlots.includes(i)"
       @input="onCharInput(i)"
+      :style="slotStyle"
       class="
-        w-9 h-9
-        sm:w-10 sm:h-10
-        text-center
-        font-bold uppercase
-        border rounded
-        transition
+        text-center font-bold uppercase
+        border rounded transition
       "
       :class="getSlotClass(i)"
     />
   </template>
 </div>
+
 
     <div class="mt-4 flex justify-center gap-3">
       <button 
@@ -189,8 +173,6 @@ function guessSingle(){
     showRules: true,
     showFail: false,
     showSummary: false,
-    progress: 0,
-    progressText: '0%',
     slots: [],
     attempts: [], // {correct:bool}
     highlightClass: '',
@@ -346,8 +328,6 @@ startSessionTimer(){
     q => q.id !== this.current.id
   );
 
-  this.updateProgress();
-
   setTimeout(() => {
   this.shakeInputs = false;
   this.shakeType = null;
@@ -396,8 +376,6 @@ this.wrongCount++;
   .catch(()=>{
       // treat as wrong
       this.attempts.push({correct:false});
-      this.progress = Math.round( (this.attempts.filter(a=>a.correct).length / this.questions.length) * 100 );
-      this.progressText = this.progress + '%';
       this.highlightClass = 'border-2 border-red-500 bg-red-50';
       this.nextOrFinish();
   });
@@ -415,18 +393,30 @@ skip(){
   this.startTimer();
 },
 
+get slotStyle(){
+  const count = this.slots.length;
+
+  // ukuran dasar
+  let size = 40;
+
+  if(count >= 10) size = 34;
+  if(count >= 12) size = 30;
+  if(count >= 15) size = 26;
+
+  return `
+    width: ${size}px;
+    height: ${size}px;
+    min-width: ${size}px;
+    min-height: ${size}px;
+  `;
+},
+
     onTimeout(){
   if(this.sessionTimeLeft <= 0) return;
 
   this.attempts.push({correct:false});
   this.pickRandomQuestion();
   this.startTimer();
-},
-
-updateProgress(){
-  const correct = this.attempts.filter(a => a.correct).length;
-  this.progress = Math.round((correct / this.questions.length) * 100);
-  this.progressText = this.progress + '%';
 },
 
     restart(){

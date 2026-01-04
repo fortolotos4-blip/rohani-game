@@ -4,36 +4,55 @@
 <div x-data="ttsMultiplayer()" x-init="init()"
      class="max-w-6xl mx-auto p-4 sm:p-6 bg-white rounded shadow">
 
-  <!-- ================= ROOM INFO ================= -->
-<div class="mb-6 bg-gray-50 border rounded-lg p-4">
-  <div class="grid grid-cols-1 md:grid-cols-3 items-center gap-4 text-sm text-gray-700">
+<!-- ================= ROOM INFO ================= -->
+<div class="mb-4">
 
-    <!-- LEFT : ROOM INFO -->
-    <div class="text-center md:text-left">
-      <div>
-        👤 <b x-text="player1"></b>
+  <!-- MODE WAITING / RPS (BESAR) -->
+  <template x-if="status !== 'playing'">
+    <div class="bg-gray-50 border rounded-lg p-4 text-sm text-gray-700 text-center space-y-2">
+
+      <div class="flex justify-center items-center gap-2 font-semibold">
+        👤 <span x-text="player1"></span>
         <span class="mx-1">VS</span>
-        👤 <b x-text="player2 || 'Menunggu…'"></b>
+        👤 <span x-text="player2 || 'Menunggu…'"></span>
       </div>
+
       <div>
         Status: <b x-text="status"></b>
       </div>
-    </div>
 
-    <!-- CENTER : SHARE CODE -->
-    <div class="text-center">
-      <p class="text-xs text-gray-500 mb-1">
-        Bagikan kode ini untuk bermain
-      </p>
-      <div
-      @click="navigator.clipboard.writeText('{{ $room->room_code }}')"
-        class="inline-block cursor-pointer px-6 py-2 text-lg font-bold tracking-widest
-         bg-white border rounded shadow-sm hover:bg-gray-100">
-        {{ $room->room_code }}
+      <div>
+        <p class="text-xs text-gray-500">Bagikan kode ini untuk bermain</p>
+        <div
+          class="inline-block mt-1 px-6 py-2 text-lg font-bold tracking-widest
+                 bg-white border rounded shadow-sm select-all">
+          {{ $room->room_code }}
+        </div>
       </div>
-    </div>
 
-  </div>
+    </div>
+  </template>
+
+  <!-- MODE PLAYING (RINGKAS) -->
+  <template x-if="status === 'playing'">
+    <div
+      class="flex flex-wrap justify-between items-center
+             bg-white border rounded px-3 py-2 text-sm text-gray-700">
+
+      <div class="flex items-center gap-2 font-semibold">
+        👤 <span x-text="player1"></span>
+        <span class="text-gray-400">VS</span>
+        👤 <span x-text="player2"></span>
+        <span class="ml-2 text-xs text-green-600">● Playing</span>
+      </div>
+
+      <div class="text-xs text-gray-500">
+        Room: <b>{{ $room->room_code }}</b>
+      </div>
+
+    </div>
+  </template>
+
 </div>
 
   <!-- ================= RPS POPUP ================= -->

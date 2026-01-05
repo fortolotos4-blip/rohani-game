@@ -118,11 +118,11 @@
     </div>
 
 
-<!-- INPUT SLOTS (FINAL – NO OVERFLOW, RESPONSIVE) -->
-<div class="w-full flex justify-center overflow-hidden">
+<<!-- INPUT SLOTS : FIXED ONE ROW -->
+<div class="flex justify-center">
   <div
-    class="flex justify-center gap-1"
-    :style="slotWrapperStyle"
+    class="flex justify-center gap-2 max-w-full overflow-hidden"
+    :style="slotContainerStyle"
   >
     <template x-for="(slot, i) in slots" :key="i">
       <input
@@ -131,7 +131,7 @@
         x-model="slots[i]"
         :disabled="lockedSlots.includes(i)"
         @input="onCharInput(i)"
-        class="text-center font-bold uppercase border rounded transition"
+        class="text-center font-bold uppercase border rounded"
         :class="getSlotClass(i)"
         :style="slotStyle"
       />
@@ -398,11 +398,27 @@ skip(){
 },
 
 get slotStyle(){
+  const count = this.slots.length;
+
+  let size = 40; // default desktop
+
+  if(count >= 8) size = 36;
+  if(count >= 10) size = 32;
+  if(count >= 12) size = 28;
+  if(count >= 15) size = 24;
+
   return `
-    width: 34px;
-    height: 34px;
-    min-width: 34px;
-    min-height: 34px;
+    width: ${size}px;
+    height: ${size}px;
+    min-width: ${size}px;
+    min-height: ${size}px;
+  `;
+},
+
+get slotContainerStyle(){
+  return `
+    max-width: 100%;
+    flex-wrap: nowrap;
   `;
 },
 

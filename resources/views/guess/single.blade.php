@@ -118,7 +118,7 @@
     </div>
 
 
-<<!-- INPUT SLOTS : FIXED ONE ROW -->
+<!-- INPUT SLOTS : FIXED ONE ROW -->
 <div class="flex justify-center">
   <div
     class="flex justify-center gap-2 max-w-full overflow-hidden"

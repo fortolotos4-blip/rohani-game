@@ -97,20 +97,20 @@
 
     <div class="flex justify-center mb-4" x-show="current">
   <img 
-    :src="current.image_path 
-      ? '{{ asset('') }}' + current.image_path 
-      : '{{ asset('images/placeholder.png') }}'"
-    class="
-      max-h-[220px]
-      sm:max-h-[300px]
-      md:max-h-[360px]
-      w-auto
-      object-contain
-      mx-auto
-      rounded-lg
-      shadow
-    "
-  />
+  :src="current.image_path 
+    ? '{{ asset('') }}' + current.image_path 
+    : '{{ asset('images/placeholder.png') }}'"
+  class="
+    w-full
+    max-w-[420px]
+    max-h-[240px]
+    sm:max-h-[300px]
+    object-contain
+    mx-auto
+    rounded-lg
+    shadow
+  "
+/>
 </div>
 
     <div class="mb-4 text-center">
@@ -118,38 +118,26 @@
     </div>
 
 
-<!-- INPUT SLOTS : SAFE HORIZONTAL SCROLL -->
-<div
-  class="
-    grid
-    grid-flow-col
-    auto-cols-max
-    justify-center
-    gap-2
-    max-w-full
-    overflow-x-auto
-    px-2
-    scrollbar-thin
-  "
->
-  <template x-for="(slot, i) in slots" :key="i">
-    <input
-      type="text"
-      maxlength="1"
-      x-model="slots[i]"
-      :disabled="lockedSlots.includes(i)"
-      @input="onCharInput(i)"
-      :style="slotStyle"
-      class="
-        text-center font-bold uppercase
-        border rounded
-        transition
-      "
-      :class="getSlotClass(i)"
-    />
-  </template>
+<!-- INPUT SLOTS (FINAL – NO OVERFLOW, RESPONSIVE) -->
+<div class="w-full flex justify-center overflow-hidden">
+  <div
+    class="flex justify-center gap-1"
+    :style="slotWrapperStyle"
+  >
+    <template x-for="(slot, i) in slots" :key="i">
+      <input
+        type="text"
+        maxlength="1"
+        x-model="slots[i]"
+        :disabled="lockedSlots.includes(i)"
+        @input="onCharInput(i)"
+        class="text-center font-bold uppercase border rounded transition"
+        :class="getSlotClass(i)"
+        :style="slotStyle"
+      />
+    </template>
+  </div>
 </div>
-
 
     <div class="mt-4 flex justify-center gap-3">
       <button 
@@ -411,9 +399,28 @@ skip(){
 
 get slotStyle(){
   return `
-    width: clamp(28px, 6vw, 40px);
-    height: clamp(28px, 6vw, 40px);
+    width: 34px;
+    height: 34px;
+    min-width: 34px;
+    min-height: 34px;
   `;
+},
+
+get slotWrapperStyle(){
+  const count = this.slots.length;
+
+  // Lebar total slot
+  const totalWidth = count * 36;
+
+  // Lebar layar (aman)
+  const maxWidth = Math.min(window.innerWidth - 40, 420);
+
+  if(totalWidth > maxWidth){
+    const scale = maxWidth / totalWidth;
+    return `transform: scale(${scale}); transform-origin: center;`;
+  }
+
+  return '';
 },
 
     onTimeout(){

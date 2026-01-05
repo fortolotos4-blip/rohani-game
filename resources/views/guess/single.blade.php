@@ -1,168 +1,156 @@
 @extends('layouts.app')
 
 @section('content')
-<div
-  x-data="guessSingle()"
-  x-init="init()"
-  :class="showSummary ? 'pointer-events-none blur-sm' : ''"
-  class="max-w-3xl mx-auto p-4 overflow-x-hidden transition"
->
+<div x-data="guessSingle()" x-init="init()">
 
-
-  <!-- TOAST -->
-<div
-  x-show="toast.show"
-  x-transition
-  class="fixed top-5 right-5 px-4 py-2 rounded shadow-lg text-white text-sm z-50"
-  :class="toast.type === 'success' ? 'bg-green-600' : 'bg-red-600'"
-  x-text="toast.message">
-</div>
-
-  <!-- Rules modal -->
-  <div x-show="showRules" class="fixed inset-0 bg-black/40 flex items-center justify-center">
-    <div class="bg-white p-6 rounded w-96">
-      <h3 class="text-xl font-bold">Aturan Tebak Gambar (Single)</h3>
-      <p class="mt-2 text-sm">Anda punya <strong>17 detik</strong> per gambar. 
-      Isi kotak huruf sesuai jawaban.</p>
-      <div class="text-right mt-4">
-        <button @click="start()" class="px-3 py-2 bg-green-600 text-white rounded">Mulai</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- Fail modal -->
-  <div x-show="showFail" class="fixed inset-0 bg-black/40 flex items-center justify-center">
-    <div class="bg-white p-6 rounded w-80">
-      <h3 class="text-xl font-bold text-red-600">Gagal!</h3>
-      <p class="mt-2">Waktu habis. Tekan ulang untuk mencoba kembali.</p>
-      <div class="mt-4 text-right">
-        <button @click="restart()" class="px-3 py-2 bg-blue-600 text-white rounded">Ulang</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- SUMMARY MODAL (FINAL CLEAN VERSION) -->
-<div
-  x-show="showSummary"
-  x-transition.opacity
-  class="fixed inset-0 z-50 flex items-center justify-center bg-black/60"
->
+  <!-- ================= GAME AREA (DI-BLUR) ================= -->
   <div
-    class="bg-white w-[90%] max-w-sm rounded-xl shadow-xl p-6 text-center"
-    @click.outside.prevent
+    :class="showSummary ? 'pointer-events-none blur-sm' : ''"
+    class="max-w-3xl mx-auto p-4 overflow-x-hidden transition"
   >
 
-    <!-- ICON / FLAG -->
-    <div class="text-4xl mb-3">🏁</div>
-
-    <!-- TITLE -->
-    <h2 class="text-xl font-bold text-gray-800 mb-4">
-      Game Selesai
-    </h2>
-
-    <!-- SUMMARY -->
-    <div class="text-sm text-gray-700 space-y-1 mb-6">
-      <p>Total soal: <b x-text="summary.total"></b></p>
-      <p>Jawaban benar: <b x-text="summary.correct"></b></p>
-      <p>Jawaban salah: <b x-text="summary.wrong"></b></p>
+    <!-- TOAST -->
+    <div
+      x-show="toast.show"
+      x-transition
+      class="fixed top-5 right-5 px-4 py-2 rounded shadow-lg text-white text-sm z-50"
+      :class="toast.type === 'success' ? 'bg-green-600' : 'bg-red-600'"
+      x-text="toast.message">
     </div>
 
-    <!-- ACTION -->
-    <a
-      href="{{ route('dashboard') }}"
-      class="block w-full py-3 rounded-lg bg-indigo-600 text-white font-semibold"
+    <!-- Rules modal -->
+    <div x-show="showRules" class="fixed inset-0 bg-black/40 flex items-center justify-center">
+      <div class="bg-white p-6 rounded w-96">
+        <h3 class="text-xl font-bold">Aturan Tebak Gambar (Adventure)</h3>
+        <p class="mt-2 text-sm">Anda punya 60 detik per gambar. 
+        dengan sesi game 5 menit.</p>
+        <p>Selamat bermain !</p>
+        <div class="text-right mt-4">
+          <button @click="start()" class="px-3 py-2 bg-green-600 text-white rounded">Mulai</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Fail modal -->
+    <div x-show="showFail" class="fixed inset-0 bg-black/40 flex items-center justify-center">
+      <div class="bg-white p-6 rounded w-80">
+        <h3 class="text-xl font-bold text-red-600">Gagal!</h3>
+        <p class="mt-2">Waktu habis. Tekan ulang untuk mencoba kembali.</p>
+        <div class="mt-4 text-right">
+          <button @click="restart()" class="px-3 py-2 bg-blue-600 text-white rounded">Ulang</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ================= MAIN UI ================= -->
+    <div class="bg-white p-4 sm:p-6 rounded shadow max-w-xl mx-auto">
+
+      <!-- HEADER TIMER -->
+      <div class="flex justify-between items-center mb-4 text-sm">
+        <div>
+          ⏱️ Soal:
+          <b :class="timeLeft <= 5 ? 'text-red-600' : ''"
+             x-text="timeLeft"></b>s
+        </div>
+        <div>
+          ⏳ Sesi:
+          <b x-text="sessionTimeLeft"></b>s
+        </div>
+      </div>
+
+      <div class="flex justify-center mb-4" x-show="current">
+        <img 
+          :src="current.image_path 
+            ? '{{ asset('') }}' + current.image_path 
+            : '{{ asset('images/placeholder.png') }}'"
+          class="
+            w-full
+            max-w-[420px]
+            max-h-[240px]
+            sm:max-h-[300px]
+            object-contain
+            mx-auto
+            rounded-lg
+            shadow
+          "
+        />
+      </div>
+
+      <div class="mb-4 text-center">
+        <div class="text-lg" x-text="current ? current.prompt || '' : ''"></div>
+      </div>
+
+      <!-- INPUT SLOTS -->
+      <div class="w-full flex justify-center">
+        <div class="flex items-center justify-center" :style="slotContainerStyle">
+          <template x-for="(slot, i) in slots" :key="i">
+            <input
+              type="text"
+              maxlength="1"
+              x-model="slots[i]"
+              :disabled="lockedSlots.includes(i)"
+              @input="onCharInput(i)"
+              class="text-center font-bold uppercase border rounded mx-[2px]"
+              :class="getSlotClass(i)"
+              :style="slotStyle"
+            />
+          </template>
+        </div>
+      </div>
+
+      <div class="mt-4 flex justify-center gap-3">
+        <button 
+          @click="submit()" 
+          :disabled="slots.some(s => !s)"
+          class="px-4 py-2 bg-green-600 text-white rounded disabled:opacity-50"
+        >
+          Submit
+        </button>
+
+        <button
+          @click="skip()"
+          class="ml-3 px-4 py-2 bg-gray-400 text-white rounded">
+          Skip
+        </button>
+      </div>
+
+    </div>
+    <!-- ================= END MAIN UI ================= -->
+
+  </div>
+  <!-- ================= END GAME AREA ================= -->
+
+  <!-- ================= SUMMARY MODAL (TIDAK BLUR) ================= -->
+  <div
+    x-show="showSummary"
+    x-transition.opacity
+    class="fixed inset-0 z-50 flex items-center justify-center bg-black/60"
+  >
+    <div
+      class="bg-white w-[90%] max-w-sm rounded-xl shadow-xl p-6 text-center"
+      @click.outside.prevent
     >
-      Kembali ke Dashboard
-    </a>
+      <div class="text-4xl mb-3">🏁</div>
 
-  </div>
-</div>
+      <h2 class="text-xl font-bold text-gray-800 mb-4">
+        Game Selesai
+      </h2>
 
+      <div class="text-sm text-gray-700 space-y-1 mb-6">
+        <p>Total soal: <b x-text="summary.total"></b></p>
+        <p>Jawaban benar: <b x-text="summary.correct"></b></p>
+        <p>Jawaban salah: <b x-text="summary.wrong"></b></p>
+      </div>
 
-  <!-- Main UI -->
-  <div class="bg-white p-4 sm:p-6 rounded shadow max-w-xl mx-auto">
-
-<!-- HEADER TIMER (SINGLE MODE) -->
-<div class="flex justify-between items-center mb-4 text-sm">
-
-  <!-- LEFT : SOAL -->
-  <div>
-    ⏱️ Soal:
-    <b :class="timeLeft <= 5 ? 'text-red-600' : ''"
-       x-text="timeLeft"></b>s
-  </div>
-
-  <!-- RIGHT : SESI -->
-  <div>
-    ⏳ Sesi:
-    <b x-text="sessionTimeLeft"></b>s
-  </div>
-
-</div>
-
-
-
-    <div class="flex justify-center mb-4" x-show="current">
-  <img 
-  :src="current.image_path 
-    ? '{{ asset('') }}' + current.image_path 
-    : '{{ asset('images/placeholder.png') }}'"
-  class="
-    w-full
-    max-w-[420px]
-    max-h-[240px]
-    sm:max-h-[300px]
-    object-contain
-    mx-auto
-    rounded-lg
-    shadow
-  "
-/>
-</div>
-
-    <div class="mb-4 text-center">
-      <div class="text-lg" x-text="current ? current.prompt || '' : ''"></div>
-    </div>
-
-
-<!-- INPUT SLOTS : ALWAYS CENTER & FIT SCREEN -->
-<div class="w-full flex justify-center">
-  <div
-    class="flex items-center justify-center"
-    :style="slotContainerStyle"
-  >
-    <template x-for="(slot, i) in slots" :key="i">
-      <input
-        type="text"
-        maxlength="1"
-        x-model="slots[i]"
-        :disabled="lockedSlots.includes(i)"
-        @input="onCharInput(i)"
-        class="text-center font-bold uppercase border rounded mx-[2px]"
-        :class="getSlotClass(i)"
-        :style="slotStyle"
-      />
-    </template>
-  </div>
-</div>
-
-    <div class="mt-4 flex justify-center gap-3">
-      <button 
-  @click="submit()" 
-  :disabled="slots.some(s => !s)"
-  class="px-4 py-2 bg-green-600 text-white rounded disabled:opacity-50"
->
-Submit
-</button>
-
-<button
-  @click="skip()"
-  class="ml-3 px-4 py-2 bg-gray-400 text-white rounded">
-  Skip
-</button>
-
+      <a
+        href="{{ route('dashboard') }}"
+        class="block w-full py-3 rounded-lg bg-indigo-600 text-white font-semibold"
+      >
+        Kembali ke Dashboard
+      </a>
     </div>
   </div>
+
 </div>
 
 <script>

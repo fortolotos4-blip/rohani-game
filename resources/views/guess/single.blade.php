@@ -189,6 +189,7 @@ function guessSingle(){
     highlightClass: '',
     shakeInputs: false,
     shakeType: null, // 'error' | 'success'
+    isSubmitting: false,
 
 
     toast: {
@@ -309,97 +310,95 @@ startSessionTimer(){
     },
     submit(){
   if(!this.current) return;
+  if(this.isSubmitting) return;
+
+  // ⛔ LOCK SEMUA AKSI
+  this.isSubmitting = true;
   clearInterval(this.timerId);
+
   const answer = this.slots.join('').trim();
+
   const payload = { 
-      question_id: this.current.id, 
-      answer: answer, 
-      time_taken_seconds: (this.current.time_limit_seconds ?? 16) - this.timeLeft 
+    question_id: this.current.id, 
+    answer: answer, 
+    time_taken_seconds: (this.current.time_limit_seconds ?? 16) - this.timeLeft 
   };
 
   fetch("/guess/single/answer", {
     method:'POST',
-    headers:{'Content-Type':'application/json','X-CSRF-TOKEN':'{{ csrf_token() }}'},
+    headers:{
+      'Content-Type':'application/json',
+      'X-CSRF-TOKEN':'{{ csrf_token() }}'
+    },
     body: JSON.stringify(payload)
   })
   .then(r=>r.json())
   .then(data => {
-  const correct = !!data.correct;
+    const correct = !!data.correct;
 
-  if(correct){
-  this.shakeInputs = true;
-  this.shakeType = 'success';
-  this.highlightClass = 'border-2 border-green-500 bg-green-50';
+    if(correct){
+      this.shakeInputs = true;
+      this.shakeType = 'success';
 
-  this.attempts.push({correct:true});
-  this.answeredCorrectIds.push(this.current.id);
+      this.attempts.push({correct:true});
+      this.answeredCorrectIds.push(this.current.id);
 
-  // 🔥 HAPUS soal ini dari pool
-  this.availableQuestions = this.availableQuestions.filter(
-    q => q.id !== this.current.id
-  );
+      // hapus dari pool
+      this.availableQuestions = this.availableQuestions.filter(
+        q => q.id !== this.current.id
+      );
 
-  setTimeout(() => {
-  this.shakeInputs = false;
-  this.shakeType = null;
+      setTimeout(() => {
+        this.shakeInputs = false;
+        this.shakeType = null;
+        this.isSubmitting = false;
 
-  this.pickRandomQuestion();
-  this.startTimer();
-  }, 700);
+        this.pickRandomQuestion();
+        this.startTimer();
+      }, 700);
 
-  return;
-} else {
-  // ❌ SALAH
-this.shakeInputs = true;
-this.shakeType = 'error';
+    } else {
+      // ❌ SALAH
+      this.shakeInputs = true;
+      this.shakeType = 'error';
 
-this.highlightClass = 'border-2 border-red-500 bg-red-50';
-
-this.attempts.push({correct:false});
-this.wrongCount++;
-
-
-  // 🔓 Salah ke-5 → buka hint
-  if(this.wrongCount === 5){
-    const firstChar = this.current.answer_text
-      .replace(/\s+/g,'')
-      .charAt(0)
-      .toUpperCase();
-
-    this.slots[0] = firstChar;
-    this.lockedSlots = [0];
-  }
-
-  setTimeout(() => {
-    // 🔥 kosongkan slot KECUALI yang terkunci
-    this.slots = this.slots.map((v,i) =>
-      this.lockedSlots.includes(i) ? v : ''
-    );
-    this.highlightClass = '';
-    this.shakeInputs = false;
-    this.shakeType = null;
-  }, 500);
-
-  this.startTimer();
-}
-})
-
-  .catch(()=>{
-      // treat as wrong
       this.attempts.push({correct:false});
-      this.highlightClass = 'border-2 border-red-500 bg-red-50';
-      this.nextOrFinish();
+      this.wrongCount++;
+
+      // hint
+      if(this.wrongCount === 5){
+        const firstChar = this.current.answer_text
+          .replace(/\s+/g,'')
+          .charAt(0)
+          .toUpperCase();
+
+        this.slots[0] = firstChar;
+        this.lockedSlots = [0];
+      }
+
+      setTimeout(() => {
+        this.slots = this.slots.map((v,i) =>
+          this.lockedSlots.includes(i) ? v : ''
+        );
+
+        this.shakeInputs = false;
+        this.shakeType = null;
+        this.isSubmitting = false;
+
+        this.startTimer();
+      }, 500);
+    }
+  })
+  .catch(() => {
+    this.isSubmitting = false;
+    this.startTimer();
   });
 },
+
 skip(){
+  if(this.isSubmitting) return;
+
   clearInterval(this.timerId);
-
-  if(this.availableQuestions.length <= 1){
-    // hanya tersisa 1 soal → lanjutkan saja
-    this.startTimer();
-    return;
-  }
-
   this.pickRandomQuestion();
   this.startTimer();
 },
@@ -444,6 +443,7 @@ get slotContainerStyle(){
 },
 
     onTimeout(){
+  if(this.isSubmitting) return;
   if(this.sessionTimeLeft <= 0) return;
 
   this.attempts.push({correct:false});

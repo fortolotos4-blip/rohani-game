@@ -119,10 +119,10 @@
 
 
 <!-- INPUT SLOTS : FIXED ONE ROW -->
-<div class="flex justify-center">
+<div class="flex justify-center overflow-hidden">
   <div
-    class="flex justify-center gap-2 max-w-full overflow-hidden"
-    :style="slotContainerStyle"
+    class="flex justify-center gap-2"
+    :style="slotWrapperStyle"
   >
     <template x-for="(slot, i) in slots" :key="i">
       <input
@@ -398,42 +398,32 @@ skip(){
 },
 
 get slotStyle(){
-  const count = this.slots.length;
-
-  let size = 40; // default desktop
-
-  if(count >= 8) size = 36;
-  if(count >= 10) size = 32;
-  if(count >= 12) size = 28;
-  if(count >= 15) size = 24;
-
   return `
-    width: ${size}px;
-    height: ${size}px;
-    min-width: ${size}px;
-    min-height: ${size}px;
-  `;
-},
-
-get slotContainerStyle(){
-  return `
-    max-width: 100%;
-    flex-wrap: nowrap;
+    width: 40px;
+    height: 40px;
+    min-width: 40px;
+    min-height: 40px;
   `;
 },
 
 get slotWrapperStyle(){
   const count = this.slots.length;
 
-  // Lebar total slot
-  const totalWidth = count * 36;
+  // ukuran slot + gap (HARUS sinkron)
+  const slotSize = 40;
+  const gap = 8;
 
-  // Lebar layar (aman)
-  const maxWidth = Math.min(window.innerWidth - 40, 420);
+  const totalWidth = count * slotSize + (count - 1) * gap;
+
+  // lebar aman layar (HP)
+  const maxWidth = Math.min(window.innerWidth - 32, 420);
 
   if(totalWidth > maxWidth){
     const scale = maxWidth / totalWidth;
-    return `transform: scale(${scale}); transform-origin: center;`;
+    return `
+      transform: scale(${scale});
+      transform-origin: center;
+    `;
   }
 
   return '';

@@ -7,8 +7,8 @@
   <script src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
   <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body class="bg-gray-100 min-h-screen">
-  <div class="flex">
+<body class="bg-gray-100 min-h-screen overflow-x-hidden">
+  <div class="flex w-full overflow-x-hidden">
     @if(View::hasSection('sidebar'))
       <aside class="w-60 bg-white border-r p-4 min-h-screen overflow-x-hidden">
         <h3 class="font-bold mb-4">Menu</h3>
@@ -16,7 +16,7 @@
       </aside>
     @endif
 
-    <main class="flex-1 p-6">
+    <main class="flex-1 p-3 sm:p-6 overflow-x-hidden">
       @yield('content')
     </main>
   </div>

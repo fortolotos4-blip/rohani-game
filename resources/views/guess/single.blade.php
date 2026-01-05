@@ -4,8 +4,10 @@
 <div
   x-data="guessSingle()"
   x-init="init()"
-  class="max-w-3xl mx-auto p-4 overflow-x-hidden"
+  :class="showSummary ? 'pointer-events-none blur-sm' : ''"
+  class="max-w-3xl mx-auto p-4 overflow-x-hidden transition"
 >
+
 
   <!-- TOAST -->
 <div
@@ -39,38 +41,43 @@
     </div>
   </div>
 
-  <!-- Summary modal -->
-  <div x-show="showSummary"
-     class="fixed inset-0 bg-black/50 flex items-center justify-center">
-  <div class="bg-white p-6 rounded w-96 text-center space-y-3">
+  <!-- SUMMARY MODAL (FINAL CLEAN VERSION) -->
+<div
+  x-show="showSummary"
+  x-transition.opacity
+  class="fixed inset-0 z-50 flex items-center justify-center bg-black/60"
+>
+  <div
+    class="bg-white w-[90%] max-w-sm rounded-xl shadow-xl p-6 text-center"
+    @click.outside.prevent
+  >
 
-    <h3 class="text-xl font-bold text-green-700">
-      🎉 Sesi Selesai
-    </h3>
+    <!-- ICON / FLAG -->
+    <div class="text-4xl mb-3">🏁</div>
 
-    <p class="text-sm text-gray-600">
-      Terima kasih sudah bermain 🙏
-    </p>
+    <!-- TITLE -->
+    <h2 class="text-xl font-bold text-gray-800 mb-4">
+      Game Selesai
+    </h2>
 
-    <div class="mt-3 text-sm">
-      <p>Soal dimainkan: <b x-text="summary.total"></b></p>
+    <!-- SUMMARY -->
+    <div class="text-sm text-gray-700 space-y-1 mb-6">
+      <p>Total soal: <b x-text="summary.total"></b></p>
       <p>Jawaban benar: <b x-text="summary.correct"></b></p>
       <p>Jawaban salah: <b x-text="summary.wrong"></b></p>
     </div>
 
-    <p class="mt-2 text-sm text-indigo-600 font-semibold">
-      Semoga permainan ini menambah wawasan dan berkat ✨
-    </p>
-
-    <div class="mt-4">
-      <a href="{{ route('dashboard') }}"
-         class="inline-block px-4 py-2 bg-indigo-600 text-white rounded">
-        Kembali ke Dashboard
-      </a>
-    </div>
+    <!-- ACTION -->
+    <a
+      href="{{ route('dashboard') }}"
+      class="block w-full py-3 rounded-lg bg-indigo-600 text-white font-semibold"
+    >
+      Kembali ke Dashboard
+    </a>
 
   </div>
 </div>
+
 
   <!-- Main UI -->
   <div class="bg-white p-4 sm:p-6 rounded shadow max-w-xl mx-auto">

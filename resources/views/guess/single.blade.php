@@ -118,11 +118,11 @@
     </div>
 
 
-<!-- INPUT SLOTS : FIXED ONE ROW -->
-<div class="flex justify-center overflow-hidden">
+<!-- INPUT SLOTS : FINAL FIX -->
+<div class="w-full overflow-hidden">
   <div
-    class="flex justify-center gap-2"
-    :style="slotWrapperStyle"
+    class="grid justify-center"
+    :style="slotGridStyle"
   >
     <template x-for="(slot, i) in slots" :key="i">
       <input
@@ -397,36 +397,22 @@ skip(){
   this.startTimer();
 },
 
-get slotStyle(){
+get slotStyle() {
   return `
-    width: 40px;
-    height: 40px;
-    min-width: 40px;
-    min-height: 40px;
+    width: clamp(26px, 7vw, 40px);
+    height: clamp(26px, 7vw, 40px);
   `;
 },
 
-get slotWrapperStyle(){
+get slotGridStyle() {
   const count = this.slots.length;
 
-  // ukuran slot + gap (HARUS sinkron)
-  const slotSize = 40;
-  const gap = 8;
-
-  const totalWidth = count * slotSize + (count - 1) * gap;
-
-  // lebar aman layar (HP)
-  const maxWidth = Math.min(window.innerWidth - 32, 420);
-
-  if(totalWidth > maxWidth){
-    const scale = maxWidth / totalWidth;
-    return `
-      transform: scale(${scale});
-      transform-origin: center;
-    `;
-  }
-
-  return '';
+  return `
+    grid-auto-flow: column;
+    grid-auto-columns: minmax(0, 1fr);
+    column-gap: 8px;
+    max-width: 100%;
+  `;
 },
 
     onTimeout(){

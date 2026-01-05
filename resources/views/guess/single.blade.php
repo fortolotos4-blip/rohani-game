@@ -118,11 +118,11 @@
     </div>
 
 
-<!-- INPUT SLOTS : FINAL FIX -->
-<div class="w-full overflow-hidden">
+<!-- INPUT SLOTS : ALWAYS CENTER & FIT SCREEN -->
+<div class="w-full flex justify-center">
   <div
-    class="grid justify-center"
-    :style="slotGridStyle"
+    class="flex items-center justify-center"
+    :style="slotContainerStyle"
   >
     <template x-for="(slot, i) in slots" :key="i">
       <input
@@ -131,7 +131,7 @@
         x-model="slots[i]"
         :disabled="lockedSlots.includes(i)"
         @input="onCharInput(i)"
-        class="text-center font-bold uppercase border rounded"
+        class="text-center font-bold uppercase border rounded mx-[2px]"
         :class="getSlotClass(i)"
         :style="slotStyle"
       />
@@ -397,22 +397,43 @@ skip(){
   this.startTimer();
 },
 
-get slotStyle() {
+get slotStyle(){
+  const count = this.slots.length;
+
+  // ukuran default
+  let size = 42;
+
+  if (count >= 8)  size = 36;
+  if (count >= 10) size = 32;
+  if (count >= 12) size = 28;
+  if (count >= 15) size = 24;
+
   return `
-    width: clamp(26px, 7vw, 40px);
-    height: clamp(26px, 7vw, 40px);
+    width:${size}px;
+    height:${size}px;
+    min-width:${size}px;
+    min-height:${size}px;
+    font-size:${Math.max(14, size * 0.45)}px;
   `;
 },
 
-get slotGridStyle() {
+get slotContainerStyle(){
   const count = this.slots.length;
+  const gap = 4; // total horizontal margin (mx-2px)
+  const slotSize = this.slotStyle.match(/width:(\d+)/)[1];
 
-  return `
-    grid-auto-flow: column;
-    grid-auto-columns: minmax(0, 1fr);
-    column-gap: 8px;
-    max-width: 100%;
-  `;
+  const totalWidth = count * slotSize + count * gap * 2;
+  const maxWidth = Math.min(window.innerWidth - 32, 420);
+
+  if (totalWidth > maxWidth) {
+    const scale = maxWidth / totalWidth;
+    return `
+      transform: scale(${scale});
+      transform-origin: center;
+    `;
+  }
+
+  return '';
 },
 
     onTimeout(){

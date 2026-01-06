@@ -3,7 +3,7 @@
 @section('content')
 <div x-data="guessDuo()" x-init="init()" class="max-w-3xl mx-auto p-4">
 
-  <!-- ================= RULES / SETUP ================= -->
+  <!-- ================= RULES ================= -->
   <div x-show="showRules" x-cloak class="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
     <div class="bg-white p-6 rounded w-96">
       <h3 class="text-xl font-bold mb-3">Tebak Gambar – Duo</h3>
@@ -50,46 +50,60 @@
   <!-- ================= GAME CARD ================= -->
   <div class="bg-white p-4 sm:p-6 rounded shadow">
 
-    <!-- ===== IMAGE + OVERLAY ===== -->
-    <div class="relative flex justify-center mb-6">
+    <!-- ===== HEADER ===== -->
+    <div class="mb-4">
 
+      <!-- TEAM BADGES -->
+      <div class="flex justify-between mb-2">
+        <div
+          class="px-3 py-1 rounded text-sm font-bold transition"
+          :class="currentTurn==='A'
+            ? 'bg-blue-100 text-blue-700 ring-2 ring-blue-400'
+            : 'bg-gray-200 text-blue-600'">
+          <span x-text="teamNames.A"></span>
+        </div>
+
+        <div
+          class="px-3 py-1 rounded text-sm font-bold transition"
+          :class="currentTurn==='B'
+            ? 'bg-red-100 text-red-700 ring-2 ring-red-400'
+            : 'bg-gray-200 text-red-600'">
+          <span x-text="teamNames.B"></span>
+        </div>
+      </div>
+
+      <!-- PROGRESS BAR -->
+      <div class="h-3 bg-gray-200 rounded overflow-hidden relative mb-1">
+        <div
+          class="absolute left-0 top-0 bottom-0 bg-blue-600 transition-all duration-500"
+          :style="`width:${bluePercent}%`"></div>
+
+        <div
+          class="absolute right-0 top-0 bottom-0 bg-red-600 transition-all duration-500"
+          :style="`width:${redPercent}%`"></div>
+      </div>
+
+      <!-- TURN + TIMER -->
+      <div class="text-center text-sm font-semibold">
+        Giliran:
+        <span :class="currentTurn==='A' ? 'text-blue-600' : 'text-red-600'"
+              x-text="teamNames[currentTurn]"></span>
+        —
+        <span :class="timeLeft <= 5 ? 'text-red-600 font-bold animate-pulse' : ''">
+          ⏱ <span x-text="timeLeft"></span>s
+        </span>
+      </div>
+
+    </div>
+
+    <!-- ===== IMAGE ===== -->
+    <div class="flex justify-center mb-5">
       <img
         :src="current?.image_path
           ? '{{ asset('') }}' + current.image_path
           : '{{ asset('images/placeholder.png') }}'"
         class="max-h-[300px] w-full object-contain rounded-lg shadow"
       >
-
-      <!-- OVERLAY -->
-      <div class="absolute inset-0 pointer-events-none">
-
-        <!-- TEAM NAMES -->
-        <div class="absolute top-2 left-3 text-sm font-bold text-blue-600 bg-white/80 px-2 py-0.5 rounded"
-             x-text="teamNames.A"></div>
-
-        <div class="absolute top-2 right-3 text-sm font-bold text-red-600 bg-white/80 px-2 py-0.5 rounded"
-             x-text="teamNames.B"></div>
-
-        <!-- PROGRESS BAR -->
-        <div class="absolute top-10 left-1/2 -translate-x-1/2 w-[80%]">
-          <div class="h-3 bg-gray-200 rounded overflow-hidden relative">
-            <div class="absolute left-0 top-0 bottom-0 bg-blue-600"
-                 :style="`width:${bluePercent}%`"></div>
-            <div class="absolute right-0 top-0 bottom-0 bg-red-600"
-                 :style="`width:${redPercent}%`"></div>
-          </div>
-
-          <!-- TURN + TIMER -->
-          <div class="mt-1 text-center text-xs font-semibold bg-white/80 rounded px-2 inline-block mx-auto">
-            Giliran:
-            <span :class="currentTurn === 'A' ? 'text-blue-600' : 'text-red-600'"
-                  x-text="teamNames[currentTurn]"></span>
-            —
-            ⏱ <span x-text="timeLeft"></span>s
-          </div>
-        </div>
-
-      </div>
     </div>
 
     <!-- PROMPT -->
@@ -98,19 +112,21 @@
     <!-- INPUT -->
     <div class="flex justify-center gap-1 mb-4">
       <template x-for="(slot,i) in slots" :key="i">
-        <input maxlength="1"
-               x-model="slots[i]"
-               @input="onCharInput(i)"
-               :disabled="isSubmitting"
-               class="w-10 h-10 text-center uppercase font-bold border rounded"
-               :class="inputClass">
+        <input
+          maxlength="1"
+          x-model="slots[i]"
+          @input="onCharInput(i)"
+          :disabled="isSubmitting"
+          class="w-10 h-10 text-center uppercase font-bold border rounded focus:outline-none focus:ring"
+        >
       </template>
     </div>
 
     <div class="text-center">
-      <button @click="submit()"
-              :disabled="isSubmitting || slots.some(s => !s)"
-              class="px-4 py-2 bg-green-600 text-white rounded disabled:opacity-50">
+      <button
+        @click="submit()"
+        :disabled="isSubmitting || slots.some(s => !s)"
+        class="px-4 py-2 bg-green-600 text-white rounded disabled:opacity-50">
         Submit
       </button>
     </div>
@@ -125,8 +141,8 @@ function guessDuo(){
     index: 0,
     current: null,
 
-    teamNames: { A: 'Tim A', B: 'Tim B' },
-    score: { A: 0, B: 0 },
+    teamNames: { A:'Tim A', B:'Tim B' },
+    score: { A:0, B:0 },
 
     currentTurn: 'A',
     timeLeft: 0,
@@ -137,7 +153,6 @@ function guessDuo(){
 
     showRules: true,
     showSummary: false,
-    inputClass: '',
 
     init(){
       this.current = this.questions[0] || null;
@@ -157,8 +172,7 @@ function guessDuo(){
       }
 
       const len = this.current.answer_slots ?? 0;
-      this.slots = Array.from({length: len}).map(()=> '');
-      this.inputClass = '';
+      this.slots = Array.from({length:len}).map(()=> '');
     },
 
     startTurn(turn){
@@ -205,36 +219,23 @@ function guessDuo(){
           player: this.currentTurn
         })
       })
-      .then(async r=>{
-        if(!r.ok){
-          const t = await r.text();
-          throw new Error(t);
-        }
-        return r.json();
-      })
+      .then(r=>r.ok ? r.json() : Promise.reject())
       .then(data=>{
         if(data.correct){
           this.score[this.currentTurn]++;
           this.nextQuestion();
         } else {
-          if(this.currentTurn === 'A'){
-            this.startTurn('B');
-          } else {
-            this.nextQuestion();
-          }
+          this.currentTurn === 'A'
+            ? this.startTurn('B')
+            : this.nextQuestion();
         }
       })
       .catch(()=>{
-        // fallback: lanjut game walau server error
-        if(this.currentTurn === 'A'){
-          this.startTurn('B');
-        } else {
-          this.nextQuestion();
-        }
+        this.currentTurn === 'A'
+          ? this.startTurn('B')
+          : this.nextQuestion();
       })
-      .finally(()=>{
-        this.isSubmitting = false;
-      });
+      .finally(()=> this.isSubmitting=false);
     },
 
     nextQuestion(){

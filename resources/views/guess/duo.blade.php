@@ -8,7 +8,7 @@
     <div class="bg-white p-6 rounded w-96">
       <h3 class="text-xl font-bold mb-3">Tebak Gambar – Duo</h3>
       <p class="text-sm mb-4">
-        Jika jawaban benar, poin bertambah dan <b>giliran soal berikutnya dimulai oleh tim pemenang</b>.
+        Jika jawaban benar, poin bertambah dan giliran soal berikutnya dimulai oleh tim pemenang.
       </p>
 
       <div class="space-y-3">
@@ -49,8 +49,6 @@
 
     <!-- HEADER -->
     <div class="mb-4">
-
-      <!-- TEAM BADGES -->
       <div class="flex justify-between mb-2">
         <div
           class="px-3 py-1 rounded text-sm font-bold transition"
@@ -69,7 +67,6 @@
         </div>
       </div>
 
-      <!-- PROGRESS BAR -->
       <div class="h-3 bg-gray-200 rounded overflow-hidden relative mb-1">
         <div class="absolute left-0 top-0 bottom-0 bg-blue-600 transition-all duration-500"
              :style="`width:${bluePercent}%`"></div>
@@ -77,7 +74,6 @@
              :style="`width:${redPercent}%`"></div>
       </div>
 
-      <!-- TIMER -->
       <div class="text-center text-sm font-semibold">
         Giliran:
         <span :class="currentTurn==='A' ? 'text-blue-600' : 'text-red-600'"
@@ -99,7 +95,8 @@
     </div>
 
     <!-- INPUT -->
-    <div class="flex justify-center gap-1 mb-4">
+    <div class="flex justify-center gap-1 mb-4"
+         :class="shake ? 'shake' : ''">
       <template x-for="(slot,i) in slots" :key="i">
         <input
           maxlength="1"
@@ -142,6 +139,7 @@ function guessDuo(){
     slots: [],
     isSubmitting: false,
     inputClass: '',
+    shake: false,
 
     showRules: true,
     showSummary: false,
@@ -220,7 +218,10 @@ function guessDuo(){
           setTimeout(()=> this.nextQuestion(),600);
         }else{
           this.inputClass='bg-red-100 border-red-500';
+          this.shake=true;
+
           setTimeout(()=>{
+            this.shake=false;
             this.slots=this.slots.map(()=> '');
             this.inputClass='';
             this.currentTurn==='A'
@@ -263,4 +264,17 @@ function guessDuo(){
   }
 }
 </script>
+
+<style>
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  20% { transform: translateX(-6px); }
+  40% { transform: translateX(6px); }
+  60% { transform: translateX(-6px); }
+  80% { transform: translateX(6px); }
+}
+.shake {
+  animation: shake 0.4s ease-in-out;
+}
+</style>
 @endsection

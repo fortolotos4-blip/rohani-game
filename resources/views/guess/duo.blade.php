@@ -49,13 +49,20 @@
 
     <!-- HEADER -->
     <div class="mb-4">
-      <div class="flex justify-between mb-2">
+
+      <!-- TEAM + SESSION TIMER -->
+      <div class="flex justify-between items-center mb-2">
         <div
           class="px-3 py-1 rounded text-sm font-bold transition"
           :class="currentTurn==='A'
             ? 'bg-blue-100 text-blue-700 ring-2 ring-blue-400'
             : 'bg-gray-200 text-blue-600'">
           <span x-text="teamNames.A"></span>
+        </div>
+
+        <!-- 🔥 SESSION TIMER 5 MENIT -->
+        <div class="text-sm font-bold text-gray-700">
+          ⏳ <span x-text="sessionTimeLeft"></span>s
         </div>
 
         <div
@@ -67,26 +74,25 @@
         </div>
       </div>
 
+      <!-- PROGRESS BAR -->
       <div class="h-4 bg-gray-200 rounded overflow-hidden relative mb-1">
 
-  <!-- BLUE BAR -->
-  <div class="absolute left-0 top-0 bottom-0 bg-blue-600 transition-all duration-500"
-       :style="`width:${bluePercent}%`"></div>
+        <div class="absolute left-0 top-0 bottom-0 bg-blue-600 transition-all duration-500"
+             :style="`width:${bluePercent}%`"></div>
 
-  <!-- RED BAR -->
-  <div class="absolute right-0 top-0 bottom-0 bg-red-600 transition-all duration-500"
-       :style="`width:${redPercent}%`"></div>
+        <div class="absolute right-0 top-0 bottom-0 bg-red-600 transition-all duration-500"
+             :style="`width:${redPercent}%`"></div>
 
-  <!-- 🔥 SCORE TEXT (DI TENGAH) -->
-  <div class="absolute inset-0 flex items-center justify-center
-              text-xs font-bold text-white pointer-events-none">
-    <span x-text="score.A"></span>
-    <span class="mx-1">-</span>
-    <span x-text="score.B"></span>
-  </div>
+        <!-- 🔥 SCORE TEXT -->
+        <div class="absolute inset-0 flex items-center justify-center
+                    text-xs font-bold text-white pointer-events-none">
+          <span x-text="score.A"></span>
+          <span class="mx-1">-</span>
+          <span x-text="score.B"></span>
+        </div>
+      </div>
 
-</div>
-
+      <!-- TURN TIMER -->
       <div class="text-center text-sm font-semibold">
         Giliran:
         <span :class="currentTurn==='A' ? 'text-blue-600' : 'text-red-600'"
@@ -115,9 +121,10 @@
           maxlength="1"
           x-model="slots[i]"
           @input="onCharInput(i)"
-          :disabled="isSubmitting"
-          class="w-10 h-10 text-center uppercase font-bold border rounded"
-          :class="inputClass">
+          :disabled="isSubmitting || lockedIndexes.includes(i)"
+          class="text-center uppercase font-bold border rounded"
+          :class="inputClass"
+          :style="slotStyle">
       </template>
     </div>
 
@@ -149,9 +156,11 @@ function guessDuo(){
     timeLeft: 0,
     timerId: null,
 
+    sessionTimeLeft: 300,
+    sessionTimerId: null,
+
     slots: [],
     lockedIndexes: [],
-    revealedIndexes: [],
     wrongAttempts: 0,
 
     isSubmitting: false,
@@ -167,8 +176,22 @@ function guessDuo(){
 
     start(){
       this.showRules = false;
+      this.sessionTimeLeft = 300;
+      this.startSessionTimer();
       this.loadQuestion();
       this.startTurn(this.nextStartTurn);
+    },
+
+    startSessionTimer(){
+      if(this.sessionTimerId) clearInterval(this.sessionTimerId);
+      this.sessionTimerId = setInterval(()=>{
+        this.sessionTimeLeft--;
+        if(this.sessionTimeLeft <= 0){
+          clearInterval(this.sessionTimerId);
+          clearInterval(this.timerId);
+          this.showSummary = true;
+        }
+      },1000);
     },
 
     loadQuestion(){
@@ -178,10 +201,8 @@ function guessDuo(){
         return;
       }
 
-      const len = this.current.answer_slots ?? 0;
-      this.slots = Array(len).fill('');
+      this.slots = Array(this.current.answer_slots ?? 0).fill('');
       this.lockedIndexes = [];
-      this.revealedIndexes = [];
       this.wrongAttempts = 0;
       this.inputClass = '';
     },
@@ -194,12 +215,11 @@ function guessDuo(){
 
     startTimer(){
       if(this.timerId) clearInterval(this.timerId);
-
       this.timerId = setInterval(()=>{
         this.timeLeft--;
 
         if(this.timeLeft === 30){
-          this.revealHintLetter(); // 🔥 HINT Cerdas
+          this.revealHint();
         }
 
         if(this.timeLeft <= 0){
@@ -210,12 +230,9 @@ function guessDuo(){
     },
 
     onTimeout(){
-      if(this.currentTurn === 'A'){
-        this.startTurn('B');
-      } else {
-        this.nextStartTurn = 'A';
-        this.nextQuestion();
-      }
+      this.currentTurn === 'A'
+        ? this.startTurn('B')
+        : (this.nextStartTurn='A', this.nextQuestion());
     },
 
     normalize(str){
@@ -226,8 +243,6 @@ function guessDuo(){
       if(this.isSubmitting) return;
       this.isSubmitting = true;
 
-      const answer = this.normalize(this.slots.join(''));
-
       fetch('/guess/duo/answer',{
         method:'POST',
         headers:{
@@ -236,49 +251,43 @@ function guessDuo(){
         },
         body:JSON.stringify({
           question_id:this.current.id,
-          answer: answer,
-          player:this.currentTurn // 🔥 FIXED
+          answer:this.normalize(this.slots.join('')),
+          player:this.currentTurn
         })
       })
-      .then(r=>r.ok ? r.json() : Promise.reject())
-      .then(data=>{
-        if(data.correct){
-          this.inputClass = 'bg-green-100 border-green-500';
+      .then(r=>r.ok?r.json():Promise.reject())
+      .then(d=>{
+        if(d.correct){
+          this.inputClass='bg-green-100 border-green-500';
           this.score[this.currentTurn]++;
-          this.nextStartTurn = this.currentTurn;
-
-          setTimeout(()=> this.nextQuestion(),200);
-        } else {
-          this.handleWrong();
+          this.nextStartTurn=this.currentTurn;
+          setTimeout(()=>this.nextQuestion(),200);
+        }else{
+          this.showWrong();
         }
       })
-      .catch(()=> this.handleWrong())
-      .finally(()=> this.isSubmitting = false);
+      .catch(()=>this.showWrong())
+      .finally(()=>this.isSubmitting=false);
     },
 
-    handleWrong(){
-      this.wrongAttempts++;
-      this.inputClass = 'bg-red-100 border-red-500';
-      this.shake = true;
-
+    showWrong(){
+      this.inputClass='bg-red-100 border-red-500';
+      this.shake=true;
       setTimeout(()=>{
-        this.shake = false;
-        this.inputClass = '';
-        this.slots = this.slots.map((v,i)=>
-          this.lockedIndexes.includes(i) ? v : ''
+        this.shake=false;
+        this.inputClass='';
+        this.slots=this.slots.map((v,i)=>
+          this.lockedIndexes.includes(i)?v:''
         );
       },200);
     },
 
-    revealHintLetter(){
-      if(this.lockedIndexes.length) return; // 🔒 hanya 1x per soal
-
-      const answer = this.normalize(this.current.answer_text);
-      const mid = Math.floor(answer.length / 2);
-
-      this.slots[mid] = answer[mid].toUpperCase();
+    revealHint(){
+      if(this.lockedIndexes.length) return;
+      const ans=this.normalize(this.current.answer_text);
+      const mid=Math.floor(ans.length/2);
+      this.slots[mid]=ans[mid].toUpperCase();
       this.lockedIndexes.push(mid);
-      this.revealedIndexes.push(mid);
     },
 
     nextQuestion(){
@@ -292,36 +301,45 @@ function guessDuo(){
     onCharInput(i){
       if(this.lockedIndexes.includes(i)) return;
 
-      const el = event.target;
-      if(el.value && i < this.slots.length - 1){
-        el.nextElementSibling?.focus();
+      let v=this.slots[i]||'';
+      v=v.replace(/[^a-zA-Z0-9]/g,'').slice(-1);
+      this.slots[i]=v.toUpperCase();
+
+      if(v && i<this.slots.length-1){
+        this.$nextTick(()=>{
+          document.querySelectorAll('input')[i+1]?.focus();
+        });
       }
     },
 
-    get bluePercent(){
-      const t = this.score.A + this.score.B;
-      return t ? Math.round(this.score.A / t * 100) : 0;
+    get slotStyle(){
+      const c=this.slots.length;
+      let s=42;
+      if(c>=8) s=36;
+      if(c>=10) s=32;
+      if(c>=12) s=28;
+      if(c>=15) s=24;
+      return `width:${s}px;height:${s}px;font-size:${Math.max(14,s*0.45)}px`;
     },
 
+    get bluePercent(){
+      const t=this.score.A+this.score.B;
+      return t?Math.round(this.score.A/t*100):0;
+    },
     get redPercent(){
-      const t = this.score.A + this.score.B;
-      return t ? Math.round(this.score.B / t * 100) : 0;
+      const t=this.score.A+this.score.B;
+      return t?Math.round(this.score.B/t*100):0;
     }
   }
 }
 </script>
 
-
 <style>
-@keyframes shake {
-  0%, 100% { transform: translateX(0); }
-  20% { transform: translateX(-6px); }
-  40% { transform: translateX(6px); }
-  60% { transform: translateX(-6px); }
-  80% { transform: translateX(6px); }
+@keyframes shake{
+  0%,100%{transform:translateX(0)}
+  25%{transform:translateX(-6px)}
+  75%{transform:translateX(6px)}
 }
-.shake {
-  animation: shake 0.4s ease-in-out;
-}
+.shake{animation:shake .3s}
 </style>
 @endsection

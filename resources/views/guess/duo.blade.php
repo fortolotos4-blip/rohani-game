@@ -3,14 +3,12 @@
 @section('content')
 <div x-data="guessDuo()" x-init="init()" class="max-w-3xl mx-auto p-4">
 
-  <!-- ================= RULES ================= -->
+  <!-- RULES -->
   <div x-show="showRules" x-cloak class="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
     <div class="bg-white p-6 rounded w-96">
       <h3 class="text-xl font-bold mb-3">Tebak Gambar – Duo</h3>
-
       <p class="text-sm mb-4">
-        Setiap gambar dimainkan oleh <b>Tim A</b> lalu <b>Tim B</b>.
-        Jika salah satu benar → poin bertambah dan lanjut gambar berikutnya.
+        Jika jawaban benar, poin bertambah dan <b>giliran soal berikutnya dimulai oleh tim pemenang</b>.
       </p>
 
       <div class="space-y-3">
@@ -32,12 +30,11 @@
     </div>
   </div>
 
-  <!-- ================= SUMMARY ================= -->
+  <!-- SUMMARY -->
   <div x-show="showSummary" x-cloak class="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
     <div class="bg-white p-6 rounded w-80 text-center">
       <h3 class="text-xl font-bold mb-4">🏁 Game Selesai</h3>
-
-      <p class="mb-1"><b x-text="teamNames.A"></b>: <span x-text="score.A"></span></p>
+      <p><b x-text="teamNames.A"></b>: <span x-text="score.A"></span></p>
       <p class="mb-4"><b x-text="teamNames.B"></b>: <span x-text="score.B"></span></p>
 
       <a href="{{ route('guess.menu') }}"
@@ -47,10 +44,10 @@
     </div>
   </div>
 
-  <!-- ================= GAME CARD ================= -->
+  <!-- GAME CARD -->
   <div class="bg-white p-4 sm:p-6 rounded shadow">
 
-    <!-- ===== HEADER ===== -->
+    <!-- HEADER -->
     <div class="mb-4">
 
       <!-- TEAM BADGES -->
@@ -74,40 +71,32 @@
 
       <!-- PROGRESS BAR -->
       <div class="h-3 bg-gray-200 rounded overflow-hidden relative mb-1">
-        <div
-          class="absolute left-0 top-0 bottom-0 bg-blue-600 transition-all duration-500"
-          :style="`width:${bluePercent}%`"></div>
-
-        <div
-          class="absolute right-0 top-0 bottom-0 bg-red-600 transition-all duration-500"
-          :style="`width:${redPercent}%`"></div>
+        <div class="absolute left-0 top-0 bottom-0 bg-blue-600 transition-all duration-500"
+             :style="`width:${bluePercent}%`"></div>
+        <div class="absolute right-0 top-0 bottom-0 bg-red-600 transition-all duration-500"
+             :style="`width:${redPercent}%`"></div>
       </div>
 
-      <!-- TURN + TIMER -->
+      <!-- TIMER -->
       <div class="text-center text-sm font-semibold">
         Giliran:
         <span :class="currentTurn==='A' ? 'text-blue-600' : 'text-red-600'"
               x-text="teamNames[currentTurn]"></span>
         —
-        <span :class="timeLeft <= 5 ? 'text-red-600 font-bold animate-pulse' : ''">
+        <span :class="timeLeft<=5 ? 'text-red-600 font-bold animate-pulse' : ''">
           ⏱ <span x-text="timeLeft"></span>s
         </span>
       </div>
-
     </div>
 
-    <!-- ===== IMAGE ===== -->
+    <!-- IMAGE -->
     <div class="flex justify-center mb-5">
       <img
         :src="current?.image_path
           ? '{{ asset('') }}' + current.image_path
           : '{{ asset('images/placeholder.png') }}'"
-        class="max-h-[300px] w-full object-contain rounded-lg shadow"
-      >
+        class="max-h-[300px] w-full object-contain rounded-lg shadow">
     </div>
-
-    <!-- PROMPT -->
-    <div class="text-center mb-4" x-text="current?.prompt || ''"></div>
 
     <!-- INPUT -->
     <div class="flex justify-center gap-1 mb-4">
@@ -117,15 +106,15 @@
           x-model="slots[i]"
           @input="onCharInput(i)"
           :disabled="isSubmitting"
-          class="w-10 h-10 text-center uppercase font-bold border rounded focus:outline-none focus:ring"
-        >
+          class="w-10 h-10 text-center uppercase font-bold border rounded"
+          :class="inputClass">
       </template>
     </div>
 
     <div class="text-center">
       <button
         @click="submit()"
-        :disabled="isSubmitting || slots.some(s => !s)"
+        :disabled="isSubmitting || slots.some(s=>!s)"
         class="px-4 py-2 bg-green-600 text-white rounded disabled:opacity-50">
         Submit
       </button>
@@ -145,11 +134,14 @@ function guessDuo(){
     score: { A:0, B:0 },
 
     currentTurn: 'A',
+    nextStartTurn: 'A',
+
     timeLeft: 0,
     timerId: null,
 
     slots: [],
     isSubmitting: false,
+    inputClass: '',
 
     showRules: true,
     showSummary: false,
@@ -161,7 +153,7 @@ function guessDuo(){
     start(){
       this.showRules = false;
       this.loadQuestion();
-      this.startTurn('A');
+      this.startTurn(this.nextStartTurn);
     },
 
     loadQuestion(){
@@ -170,9 +162,9 @@ function guessDuo(){
         this.showSummary = true;
         return;
       }
-
       const len = this.current.answer_slots ?? 0;
       this.slots = Array.from({length:len}).map(()=> '');
+      this.inputClass = '';
     },
 
     startTurn(turn){
@@ -183,10 +175,9 @@ function guessDuo(){
 
     startTimer(){
       if(this.timerId) clearInterval(this.timerId);
-
       this.timerId = setInterval(()=>{
         this.timeLeft--;
-        if(this.timeLeft <= 0){
+        if(this.timeLeft<=0){
           clearInterval(this.timerId);
           this.onTimeout();
         }
@@ -194,17 +185,17 @@ function guessDuo(){
     },
 
     onTimeout(){
-      if(this.currentTurn === 'A'){
+      if(this.currentTurn==='A'){
         this.startTurn('B');
-      } else {
+      }else{
+        this.nextStartTurn='A';
         this.nextQuestion();
       }
     },
 
     submit(){
       if(this.isSubmitting) return;
-      this.isSubmitting = true;
-
+      this.isSubmitting=true;
       clearInterval(this.timerId);
 
       fetch('/guess/duo/answer',{
@@ -213,27 +204,35 @@ function guessDuo(){
           'Content-Type':'application/json',
           'X-CSRF-TOKEN':'{{ csrf_token() }}'
         },
-        body: JSON.stringify({
-          question_id: this.current.id,
-          answer: this.slots.join('').trim(),
-          player: this.currentTurn
+        body:JSON.stringify({
+          question_id:this.current.id,
+          answer:this.slots.join('').trim(),
+          player:this.currentTurn
         })
       })
-      .then(r=>r.ok ? r.json() : Promise.reject())
+      .then(r=>r.ok?r.json():Promise.reject())
       .then(data=>{
         if(data.correct){
+          this.inputClass='bg-green-100 border-green-500';
           this.score[this.currentTurn]++;
-          this.nextQuestion();
-        } else {
-          this.currentTurn === 'A'
-            ? this.startTurn('B')
-            : this.nextQuestion();
+          this.nextStartTurn=this.currentTurn;
+
+          setTimeout(()=> this.nextQuestion(),600);
+        }else{
+          this.inputClass='bg-red-100 border-red-500';
+          setTimeout(()=>{
+            this.slots=this.slots.map(()=> '');
+            this.inputClass='';
+            this.currentTurn==='A'
+              ? this.startTurn('B')
+              : (this.nextStartTurn='A', this.nextQuestion());
+          },600);
         }
       })
       .catch(()=>{
-        this.currentTurn === 'A'
+        this.currentTurn==='A'
           ? this.startTurn('B')
-          : this.nextQuestion();
+          : (this.nextStartTurn='A', this.nextQuestion());
       })
       .finally(()=> this.isSubmitting=false);
     },
@@ -242,24 +241,24 @@ function guessDuo(){
       this.index++;
       this.loadQuestion();
       if(!this.showSummary){
-        this.startTurn('A');
+        this.startTurn(this.nextStartTurn);
       }
     },
 
     onCharInput(i){
-      const el = event.target;
-      if(el.value && i < this.slots.length-1){
+      const el=event.target;
+      if(el.value && i<this.slots.length-1){
         el.nextElementSibling?.focus();
       }
     },
 
     get bluePercent(){
-      const t = this.score.A + this.score.B;
-      return t ? Math.round(this.score.A / t * 100) : 0;
+      const t=this.score.A+this.score.B;
+      return t?Math.round(this.score.A/t*100):0;
     },
     get redPercent(){
-      const t = this.score.A + this.score.B;
-      return t ? Math.round(this.score.B / t * 100) : 0;
+      const t=this.score.A+this.score.B;
+      return t?Math.round(this.score.B/t*100):0;
     }
   }
 }

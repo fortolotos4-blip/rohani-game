@@ -116,10 +116,12 @@
     <!-- INPUT -->
     <div class="w-full flex justify-center overflow-hidden mb-4">
   <div
+    x-ref="slotContainer"
     class="flex items-center justify-center gap-1 transition-transform"
     :class="shake ? 'shake' : ''"
     :style="slotContainerStyle"
   >
+
       <template x-for="(slot,i) in slots" :key="i">
         <input
   maxlength="1"
@@ -333,14 +335,15 @@ function guessDuo(){
 
   let v = e.target.value || '';
 
-  // hanya 1 karakter
+  // 🔒 pastikan 1 huruf saja
   v = v.replace(/[^a-zA-Z0-9]/g,'').slice(-1);
   this.slots[i] = v.toUpperCase();
   e.target.value = this.slots[i];
 
-  // 🔥 PINDAH OTOMATIS KE KANAN
+  // 🔥 PINDAH OTOMATIS (PASTI JALAN)
   if(v){
-    const next = e.target.nextElementSibling;
+    const inputs = this.$refs.slotContainer.querySelectorAll('input');
+    const next = inputs[i + 1];
     if(next && !next.disabled){
       next.focus();
     }

@@ -1,109 +1,114 @@
 @extends('layouts.app')
 
 @section('content')
-<div x-data="guessDuo()" x-init="init()" class="max-w-4xl mx-auto p-4">
-  <!-- Rules modal -->
-  <div x-show="showRules" class="fixed inset-0 bg-black/40 flex items-center justify-center">
-    <div class="bg-white p-6 rounded w-96">
-      <h3 class="text-xl font-bold">Aturan Tebak Gambar (Duo)</h3>
-      <p class="mt-2 text-sm">Pilih warna (Biru atau Merah) lalu mulai. Bergantian menjawab. Setiap jawaban benar menambah progress di sisi pemain.</p>
+<div x-data="guessDuo()" x-init="init()" class="max-w-3xl mx-auto p-4">
 
-      <div class="mt-4">
-        <label class="inline-flex items-center mr-4">
-          <input type="radio" name="playerColor" value="blue" x-model="playerColor" checked>
-          <span class="ml-2">Biru</span>
-        </label>
-        <label class="inline-flex items-center">
-          <input type="radio" name="playerColor" value="red" x-model="playerColor">
-          <span class="ml-2">Merah</span>
-        </label>
+  <!-- ================= RULES + TEAM SETUP ================= -->
+  <div x-show="showRules" x-cloak class="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+    <div class="bg-white p-6 rounded w-96">
+      <h3 class="text-xl font-bold mb-2">Tebak Gambar – Duo</h3>
+
+      <p class="text-sm mb-4">
+        Setiap gambar dimainkan oleh <b>Tim A</b> lalu <b>Tim B</b>.
+        Jika salah satu benar, poin bertambah dan lanjut ke gambar berikutnya.
+      </p>
+
+      <div class="space-y-3">
+        <div>
+          <label class="text-sm font-semibold">Nama Tim A</label>
+          <input x-model="teamNames.A" class="w-full border rounded px-2 py-1">
+        </div>
+        <div>
+          <label class="text-sm font-semibold">Nama Tim B</label>
+          <input x-model="teamNames.B" class="w-full border rounded px-2 py-1">
+        </div>
       </div>
 
       <div class="text-right mt-4">
-        <button @click="start()" class="px-3 py-2 bg-green-600 text-white rounded">Mulai</button>
+        <button @click="start()" class="px-4 py-2 bg-green-600 text-white rounded">
+          Mulai
+        </button>
       </div>
     </div>
   </div>
 
-  <!-- Fail modal -->
-  <div x-show="showFail" class="fixed inset-0 bg-black/40 flex items-center justify-center">
-    <div class="bg-white p-6 rounded w-80">
-      <h3 class="text-xl font-bold text-red-600">Gagal!</h3>
-      <p class="mt-2">Waktu habis. Jawaban dianggap kosong. Lanjut ke pemain berikutnya.</p>
-      <div class="mt-4 text-right">
-        <button @click="continueAfterFail()" class="px-3 py-2 bg-blue-600 text-white rounded">Lanjut</button>
-      </div>
+  <!-- ================= SUMMARY ================= -->
+  <div x-show="showSummary" x-cloak class="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+    <div class="bg-white p-6 rounded w-80 text-center">
+      <h3 class="text-xl font-bold mb-3">🏁 Game Selesai</h3>
+
+      <p class="mb-1"><b x-text="teamNames.A"></b>: <span x-text="score.A"></span></p>
+      <p class="mb-4"><b x-text="teamNames.B"></b>: <span x-text="score.B"></span></p>
+
+      <a href="{{ route('guess.menu') }}"
+         class="block w-full py-2 bg-indigo-600 text-white rounded">
+        Kembali
+      </a>
     </div>
   </div>
 
-  <!-- Summary modal -->
-  <div x-show="showSummary" class="fixed inset-0 bg-black/40 flex items-center justify-center">
-    <div class="bg-white p-6 rounded w-96">
-      <h3 class="text-xl font-bold">Ringkasan Duo</h3>
-      <p class="mt-2">Skor Biru: <strong x-text="score.blue"></strong></p>
-      <p class="mt-1">Skor Merah: <strong x-text="score.red"></strong></p>
-      <div class="mt-4 text-right">
-        <a href="{{ route('guess.menu') }}" class="px-3 py-2 bg-indigo-600 text-white rounded">Kembali</a>
+  <!-- ================= GAME AREA ================= -->
+  <div class="bg-white p-4 sm:p-6 rounded shadow">
+
+    <!-- ===== HEADER / PROGRESS ===== -->
+    <div class="relative mb-4">
+
+      <!-- TEAM NAMES -->
+      <div class="absolute top-0 left-0 text-sm font-bold text-blue-600"
+           x-text="teamNames.A"></div>
+      <div class="absolute top-0 right-0 text-sm font-bold text-red-600"
+           x-text="teamNames.B"></div>
+
+      <!-- PROGRESS BAR -->
+      <div class="mt-6 h-3 bg-gray-200 rounded relative overflow-hidden">
+        <div class="absolute left-0 top-0 bottom-0 bg-blue-600"
+             :style="`width:${bluePercent}%`"></div>
+        <div class="absolute right-0 top-0 bottom-0 bg-red-600"
+             :style="`width:${redPercent}%`"></div>
+      </div>
+
+      <!-- TURN + TIMER -->
+      <div class="mt-2 text-center text-sm font-semibold">
+        Giliran:
+        <span :class="currentTurn === 'A' ? 'text-blue-600' : 'text-red-600'"
+              x-text="teamNames[currentTurn]"></span>
+        —
+        ⏱ <span x-text="timeLeft"></span>s
       </div>
     </div>
-  </div>
 
-  <!-- Main -->
-  <div class="bg-white p-6 rounded shadow">
-    <div class="flex justify-between items-center mb-4">
-      <div class="text-sm font-semibold">Waktu: <span 
-        x-text="timeLeft"
-        :class="timeLeft <= 5 ? 'text-red-600 font-bold' : 'text-black'"
-    ></span> detik</div>
-      <div class="w-full max-w-xl">
-        <div class="relative h-6 bg-gray-200 rounded">
-          <!-- blue fill from left -->
-          <div :style="`width:${bluePercent}%`" class="absolute left-0 top-0 bottom-0 bg-blue-600"></div>
-          <!-- red fill from right -->
-          <div :style="`width:${redPercent}%`" class="absolute right-0 top-0 bottom-0 bg-red-600"></div>
-          <div class="absolute inset-0 flex items-center justify-center text-sm text-white font-bold">
-            <span x-text="scoreText"></span>
-          </div>
-        </div>
-      </div>
+    <!-- ===== IMAGE ===== -->
+    <div class="flex justify-center mb-4">
+      <img
+        :src="current.image_path
+          ? '{{ asset('') }}' + current.image_path
+          : '{{ asset('images/placeholder.png') }}'"
+        class="max-h-[280px] object-contain rounded shadow"
+      >
     </div>
 
-    <div :class="activePlayer === 'blue' ? 'bg-blue-50 p-4 rounded' : 'bg-red-50 p-4 rounded'">
-      <div class="flex justify-center mb-4">
-        <img 
-  :src="current.image_path 
-    ? '{{ asset('') }}' + current.image_path 
-    : '{{ asset('images/placeholder.png') }}'"
-  class="max-h-[420px] w-auto object-contain mx-auto rounded-lg shadow"
-/>
-      </div>
+    <!-- PROMPT -->
+    <div class="text-center mb-4" x-text="current.prompt || ''"></div>
 
-      <div class="mb-4 text-center">
-        <div x-text="current ? current.prompt || '' : ''"></div>
-      </div>
-
-      <div class="flex justify-center gap-2">
-        <template x-for="(slot, i) in slots" :key="i">
-          <input type="text"
-       maxlength="1"
-       x-model="slots[i]"
-       @input="onCharInput(i)"
-       :class="'w-10 h-10 text-center border rounded ' + highlightClass"
-/>
-        </template>
-      </div>
-
-      <div class="mt-4 text-center">
-        <button 
-  @click="submit()" 
-  :disabled="slots.some(s => !s)"
-  class="px-4 py-2 bg-green-600 text-white rounded disabled:opacity-50"
->
-Submit
-</button>
-
-      </div>
+    <!-- INPUT -->
+    <div class="flex justify-center gap-1 mb-4">
+      <template x-for="(slot,i) in slots" :key="i">
+        <input maxlength="1"
+               x-model="slots[i]"
+               @input="onCharInput(i)"
+               class="w-10 h-10 text-center uppercase font-bold border rounded"
+               :class="inputClass">
+      </template>
     </div>
+
+    <div class="text-center">
+      <button @click="submit()"
+              :disabled="slots.some(s => !s)"
+              class="px-4 py-2 bg-green-600 text-white rounded disabled:opacity-50">
+        Submit
+      </button>
+    </div>
+
   </div>
 </div>
 
@@ -113,44 +118,52 @@ function guessDuo(){
     questions: @json($questions ?? []),
     index: 0,
     current: null,
-    playerColor: 'blue',
-    activePlayer: 'blue', // who plays this round
-    timeLeft: 16,
-    timerId: null,
-    showRules: true,
-    showFail: false,
-    showSummary: false,
-    slots: [],
-    score: {blue:0, red:0},
-    highlightClass: '',
 
+    teamNames: { A: 'Tim A', B: 'Tim B' },
+    score: { A: 0, B: 0 },
+
+    currentTurn: 'A',
+    usedTurn: { A: false, B: false },
+
+    timeLeft: 0,
+    timerId: null,
+
+    slots: [],
+    showRules: true,
+    showSummary: false,
+    inputClass: '',
 
     init(){
-      if(this.questions.length) this.loadCurrent();
+      this.current = this.questions[this.index];
     },
 
     start(){
       this.showRules = false;
-      this.activePlayer = this.playerColor;
-      this.loadCurrent();
+      this.loadQuestion();
+      this.startTurn('A');
+    },
+
+    loadQuestion(){
+      this.current = this.questions[this.index];
+      if(!this.current){
+        this.showSummary = true;
+        return;
+      }
+
+      const len = this.current.answer_slots ?? 0;
+      this.slots = Array.from({length: len}).map(()=>'');
+      this.usedTurn = { A:false, B:false };
+    },
+
+    startTurn(turn){
+      this.currentTurn = turn;
+      this.timeLeft = this.current.time_limit_seconds ?? 60;
       this.startTimer();
     },
 
-    loadCurrent(){
-  this.highlightClass = '';
-
-  // 🔥 SET CURRENT DULU
-  this.current = this.questions[this.index];
-
-  if(!this.current) return;
-
-  const totalSlots = this.current.answer_slots ?? 0;
-  this.slots = Array.from({ length: totalSlots }).map(() => '');
-  this.timeLeft = this.current.time_limit_seconds ?? 16;
-},
-
     startTimer(){
       if(this.timerId) clearInterval(this.timerId);
+
       this.timerId = setInterval(()=>{
         this.timeLeft--;
         if(this.timeLeft <= 0){
@@ -160,6 +173,57 @@ function guessDuo(){
       },1000);
     },
 
+    onTimeout(){
+      this.usedTurn[this.currentTurn] = true;
+
+      if(this.currentTurn === 'A'){
+        this.startTurn('B');
+      } else {
+        this.nextQuestion();
+      }
+    },
+
+    submit(){
+      clearInterval(this.timerId);
+
+      const answer = this.slots.join('').trim();
+
+      fetch('/guess/duo/answer',{
+        method:'POST',
+        headers:{
+          'Content-Type':'application/json',
+          'X-CSRF-TOKEN':'{{ csrf_token() }}'
+        },
+        body: JSON.stringify({
+          question_id: this.current.id,
+          answer: answer,
+          player: this.currentTurn
+        })
+      })
+      .then(r=>r.json())
+      .then(data=>{
+        if(data.correct){
+          this.score[this.currentTurn]++;
+          this.nextQuestion();
+        } else {
+          this.usedTurn[this.currentTurn] = true;
+          if(this.currentTurn === 'A'){
+            this.startTurn('B');
+          } else {
+            this.nextQuestion();
+          }
+        }
+      });
+    },
+
+    nextQuestion(){
+      this.index++;
+      this.loadQuestion();
+      if(!this.showSummary){
+        this.startTurn('A');
+      }
+    },
+
     onCharInput(i){
       const el = event.target;
       if(el.value && i < this.slots.length-1){
@@ -167,93 +231,13 @@ function guessDuo(){
       }
     },
 
-    submit(){
-    clearInterval(this.timerId);
-
-    const answer = this.slots.join('').trim();
-
-    const payload = { 
-        question_id: this.current.id, 
-        answer: answer, 
-        player: this.activePlayer, 
-        time_taken_seconds: (this.current.time_limit_seconds ?? 16) - this.timeLeft 
-    };
-
-    fetch("/guess/duo/answer", {
-        method:'POST',
-        headers:{
-            'Content-Type':'application/json',
-            'X-CSRF-TOKEN':'{{ csrf_token() }}'
-        },
-        body: JSON.stringify(payload)
-    })
-    .then(r => r.json())
-    .then(data => {
-
-        const correct = !!data.correct;
-
-        // ⭐ Highlight sesuai jawaban
-        if(correct){
-            this.highlightClass = 'border-2 border-green-500 bg-green-50';
-            this.score[this.activePlayer] += 1;  // tambah skor pemain
-        } else {
-            this.highlightClass = 'border-2 border-red-500 bg-red-50';
-        }
-
-        // ⭐ Tunggu sebentar agar pemain melihat highlight
-        setTimeout(() => {
-            this.afterRound();
-        }, 700);
-
-    })
-    .catch(() => {
-        // Jika error server → anggap salah
-        this.highlightClass = 'border-2 border-red-500 bg-red-50';
-
-        setTimeout(() => {
-            this.afterRound();
-        }, 700);
-    });
-},
-    onTimeout(){
-      // treat as miss
-      this.showFail = true;
-    },
-
-    continueAfterFail(){
-      this.showFail = false;
-      this.afterRound();
-    },
-
-    afterRound(){
-      // switch active player and go next
-      this.index++;
-      // switch player
-      this.activePlayer = this.activePlayer === 'blue' ? 'red' : 'blue';
-
-      if(this.index >= this.questions.length){
-        this.showSummary = true;
-        return;
-      }
-
-      this.loadCurrent();
-      this.startTimer();
-    },
-
     get bluePercent(){
-      const total = this.score.blue + this.score.red;
-      if(total === 0) return 0;
-      return Math.min(100, Math.round((this.score.blue / total) * 100));
+      const t = this.score.A + this.score.B;
+      return t ? Math.round(this.score.A / t * 100) : 0;
     },
-
     get redPercent(){
-      const total = this.score.blue + this.score.red;
-      if(total === 0) return 0;
-      return Math.min(100, Math.round((this.score.red / total) * 100));
-    },
-
-    get scoreText(){
-      return `${this.score.blue} - ${this.score.red}`;
+      const t = this.score.A + this.score.B;
+      return t ? Math.round(this.score.B / t * 100) : 0;
     }
   }
 }

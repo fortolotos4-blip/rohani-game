@@ -80,23 +80,28 @@ class GuessController extends Controller
 
     // Duo answer — similar validation
     public function duoAnswer(Request $request)
-    {
-        $request->validate([
-            'question_id' => 'required|integer',
-            'answer' => 'nullable|string',
-            'player' => 'required|string|in:blue,red',
-            'time_taken_seconds' => 'nullable|integer',
-        ]);
+{
+    $request->validate([
+        'question_id' => 'required|integer',
+        'answer' => 'nullable|string',
+        'player' => 'required|string|in:A,B', // 🔥 FIX
+    ]);
 
-        $q = Question::find($request->question_id);
-        if(!$q) return response()->json(['error'=>'Question not found'],404);
-
-        $provided = trim($request->answer ?? '');
-        $isCorrect = mb_strtolower(preg_replace('/\s+/', '', $provided)) === mb_strtolower(preg_replace('/\s+/', '', $q->answer_text));
-
-        return response()->json([
-            'correct' => $isCorrect,
-            'correct_answer' => $q->answer_text,
-        ]);
+    $q = Question::find($request->question_id);
+    if (!$q) {
+        return response()->json(['error' => 'Question not found'], 404);
     }
+
+    // 🔥 NORMALISASI IDENTIK DENGAN FRONTEND
+    $normalize = function ($str) {
+        return strtolower(preg_replace('/[^a-z0-9]/i', '', $str));
+    };
+
+    $isCorrect = $normalize($request->answer ?? '') === $normalize($q->answer_text);
+
+    return response()->json([
+        'correct' => $isCorrect,
+        'correct_answer' => $q->answer_text,
+    ]);
+}
 }

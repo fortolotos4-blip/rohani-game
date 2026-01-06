@@ -67,12 +67,25 @@
         </div>
       </div>
 
-      <div class="h-3 bg-gray-200 rounded overflow-hidden relative mb-1">
-        <div class="absolute left-0 top-0 bottom-0 bg-blue-600 transition-all duration-500"
-             :style="`width:${bluePercent}%`"></div>
-        <div class="absolute right-0 top-0 bottom-0 bg-red-600 transition-all duration-500"
-             :style="`width:${redPercent}%`"></div>
-      </div>
+      <div class="h-4 bg-gray-200 rounded overflow-hidden relative mb-1">
+
+  <!-- BLUE BAR -->
+  <div class="absolute left-0 top-0 bottom-0 bg-blue-600 transition-all duration-500"
+       :style="`width:${bluePercent}%`"></div>
+
+  <!-- RED BAR -->
+  <div class="absolute right-0 top-0 bottom-0 bg-red-600 transition-all duration-500"
+       :style="`width:${redPercent}%`"></div>
+
+  <!-- 🔥 SCORE TEXT (DI TENGAH) -->
+  <div class="absolute inset-0 flex items-center justify-center
+              text-xs font-bold text-white pointer-events-none">
+    <span x-text="score.A"></span>
+    <span class="mx-1">-</span>
+    <span x-text="score.B"></span>
+  </div>
+
+</div>
 
       <div class="text-center text-sm font-semibold">
         Giliran:
@@ -166,7 +179,7 @@ function guessDuo(){
       }
 
       const len = this.current.answer_slots ?? 0;
-      this.slots = Array.from({length:len}).map(()=> '');
+      this.slots = Array(len).fill('');
       this.lockedIndexes = [];
       this.revealedIndexes = [];
       this.wrongAttempts = 0;
@@ -181,11 +194,12 @@ function guessDuo(){
 
     startTimer(){
       if(this.timerId) clearInterval(this.timerId);
+
       this.timerId = setInterval(()=>{
         this.timeLeft--;
 
-        if(this.timeLeft === 5){
-          this.revealHintIfNeeded();
+        if(this.timeLeft === 30){
+          this.revealHintLetter(); // 🔥 HINT Cerdas
         }
 
         if(this.timeLeft <= 0){
@@ -212,8 +226,7 @@ function guessDuo(){
       if(this.isSubmitting) return;
       this.isSubmitting = true;
 
-      const rawAnswer = this.slots.join('');
-      const answer = this.normalize(rawAnswer);
+      const answer = this.normalize(this.slots.join(''));
 
       fetch('/guess/duo/answer',{
         method:'POST',
@@ -224,7 +237,7 @@ function guessDuo(){
         body:JSON.stringify({
           question_id:this.current.id,
           answer: answer,
-          player:this.currentTurn
+          player:this.currentTurn // 🔥 FIXED
         })
       })
       .then(r=>r.ok ? r.json() : Promise.reject())
@@ -239,12 +252,8 @@ function guessDuo(){
           this.handleWrong();
         }
       })
-      .catch(()=>{
-        this.handleWrong();
-      })
-      .finally(()=>{
-        this.isSubmitting = false;
-      });
+      .catch(()=> this.handleWrong())
+      .finally(()=> this.isSubmitting = false);
     },
 
     handleWrong(){
@@ -258,37 +267,18 @@ function guessDuo(){
         this.slots = this.slots.map((v,i)=>
           this.lockedIndexes.includes(i) ? v : ''
         );
-        this.revealHintIfNeeded();
       },200);
     },
 
-    revealHintIfNeeded(){
-      if(
-        this.wrongAttempts === 2 ||
-        this.wrongAttempts === 4 ||
-        this.timeLeft <= 5
-      ){
-        this.revealHintLetter();
-      }
-    },
-
     revealHintLetter(){
+      if(this.lockedIndexes.length) return; // 🔒 hanya 1x per soal
+
       const answer = this.normalize(this.current.answer_text);
+      const mid = Math.floor(answer.length / 2);
 
-      const candidates = this.slots
-        .map((v,i)=>({v,i}))
-        .filter(o =>
-          !o.v &&
-          !this.revealedIndexes.includes(o.i)
-        );
-
-      if(!candidates.length) return;
-
-      const pick = candidates[Math.floor(candidates.length / 2)];
-
-      this.slots[pick.i] = answer[pick.i].toUpperCase();
-      this.revealedIndexes.push(pick.i);
-      this.lockedIndexes.push(pick.i);
+      this.slots[mid] = answer[mid].toUpperCase();
+      this.lockedIndexes.push(mid);
+      this.revealedIndexes.push(mid);
     },
 
     nextQuestion(){
@@ -320,6 +310,7 @@ function guessDuo(){
   }
 }
 </script>
+
 
 <style>
 @keyframes shake {

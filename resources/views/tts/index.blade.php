@@ -139,7 +139,7 @@ function ttsApp(){
     wordStatus: {},
     lockedCells: {},
 
-    timeLeft: {{ $difficulty==='easy' ? 400 : ($difficulty==='medium' ? 300 : 250) }},
+    timeLeft: {{ $difficulty==='easy' ? 300 : ($difficulty==='medium' ? 250 : 200) }},
     timer: null,
 
     showClues: false,

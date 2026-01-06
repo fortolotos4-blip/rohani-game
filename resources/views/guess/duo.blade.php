@@ -114,19 +114,31 @@
     </div>
 
     <!-- INPUT -->
-    <div class="flex justify-center gap-1 mb-4"
-         :class="shake ? 'shake' : ''">
+    <div class="w-full flex justify-center overflow-hidden mb-4">
+  <div
+    class="flex items-center justify-center gap-1 transition-transform"
+    :class="shake ? 'shake' : ''"
+    :style="slotContainerStyle"
+  >
       <template x-for="(slot,i) in slots" :key="i">
         <input
-          maxlength="1"
-          x-model="slots[i]"
-          @input="onCharInput(i)"
-          :disabled="isSubmitting || lockedIndexes.includes(i)"
-          class="text-center uppercase font-bold border rounded"
-          :class="inputClass"
-          :style="slotStyle">
+  x-ref="slotInputs"
+  maxlength="1"
+  x-model="slots[i]"
+  @input="onCharInput(i)"
+  @keydown.backspace.prevent="
+    if(!slots[i] && i > 0){
+      $refs.slotInputs[i-1].focus()
+    }
+  "
+  :disabled="isSubmitting || lockedIndexes.includes(i)"
+  class="text-center uppercase font-bold border rounded"
+  :class="inputClass"
+  :style="slotStyle"
+/>
       </template>
     </div>
+</div>
 
     <div class="text-center">
       <button
@@ -173,6 +185,21 @@ function guessDuo(){
     init(){
       this.current = this.questions[0] || null;
     },
+
+    get slotContainerStyle(){
+  const count = this.slots.length;
+  const slotSize = parseInt(this.slotStyle.match(/width:(\d+)/)[1]);
+  const totalWidth = count * slotSize + count * 4; // gap
+
+  const maxWidth = Math.min(window.innerWidth - 32, 420);
+
+  if(totalWidth > maxWidth){
+    const scale = maxWidth / totalWidth;
+    return `transform: scale(${scale}); transform-origin: center;`;
+  }
+
+  return '';
+},
 
     start(){
       this.showRules = false;
@@ -299,18 +326,21 @@ function guessDuo(){
     },
 
     onCharInput(i){
-      if(this.lockedIndexes.includes(i)) return;
+  if(this.lockedIndexes.includes(i)) return;
 
-      let v=this.slots[i]||'';
-      v=v.replace(/[^a-zA-Z0-9]/g,'').slice(-1);
-      this.slots[i]=v.toUpperCase();
+  let v = this.slots[i] || '';
 
-      if(v && i<this.slots.length-1){
-        this.$nextTick(()=>{
-          document.querySelectorAll('input')[i+1]?.focus();
-        });
-      }
-    },
+  // 🔥 hanya 1 karakter
+  v = v.replace(/[^a-zA-Z0-9]/g,'').slice(-1);
+  this.slots[i] = v.toUpperCase();
+
+  // 🔥 fokus ke slot berikutnya (BUKAN semua input)
+  if(v && i < this.slots.length - 1){
+    this.$nextTick(() => {
+      this.$refs.slotInputs[i + 1]?.focus();
+    });
+  }
+},
 
     get slotStyle(){
       const c=this.slots.length;

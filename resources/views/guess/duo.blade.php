@@ -122,13 +122,15 @@
   >
       <template x-for="(slot,i) in slots" :key="i">
         <input
-  x-ref="slotInputs"
   maxlength="1"
   x-model="slots[i]"
-  @input="onCharInput(i)"
-  @keydown.backspace.prevent="
-    if(!slots[i] && i > 0){
-      $refs.slotInputs[i-1].focus()
+  @input="onCharInput(i, $event)"
+  @keydown.backspace="
+    if(!$event.target.value){
+      const prev = $event.target.previousElementSibling;
+      if(prev && !prev.disabled){
+        prev.focus();
+      }
     }
   "
   :disabled="isSubmitting || lockedIndexes.includes(i)"
@@ -136,6 +138,7 @@
   :class="inputClass"
   :style="slotStyle"
 />
+
       </template>
     </div>
 </div>
@@ -325,20 +328,22 @@ function guessDuo(){
       }
     },
 
-    onCharInput(i){
+    onCharInput(i, e){
   if(this.lockedIndexes.includes(i)) return;
 
-  let v = this.slots[i] || '';
+  let v = e.target.value || '';
 
-  // 🔥 hanya 1 karakter
+  // hanya 1 karakter
   v = v.replace(/[^a-zA-Z0-9]/g,'').slice(-1);
   this.slots[i] = v.toUpperCase();
+  e.target.value = this.slots[i];
 
-  // 🔥 fokus ke slot berikutnya (BUKAN semua input)
-  if(v && i < this.slots.length - 1){
-    this.$nextTick(() => {
-      this.$refs.slotInputs[i + 1]?.focus();
-    });
+  // 🔥 PINDAH OTOMATIS KE KANAN
+  if(v){
+    const next = e.target.nextElementSibling;
+    if(next && !next.disabled){
+      next.focus();
+    }
   }
 },
 

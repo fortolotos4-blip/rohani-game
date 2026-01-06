@@ -160,7 +160,6 @@ function guessDuo(){
         this.showSummary = true;
         return;
       }
-
       const len = this.current.answer_slots ?? 0;
       this.slots = Array.from({length:len}).map(()=> '');
       this.inputClass = '';
@@ -184,7 +183,6 @@ function guessDuo(){
     },
 
     onTimeout(){
-      // waktu habis → pindah turn / soal
       if(this.currentTurn === 'A'){
         this.startTurn('B');
       } else {
@@ -197,6 +195,13 @@ function guessDuo(){
       if(this.isSubmitting) return;
       this.isSubmitting = true;
 
+      // 🔥 NORMALISASI JAWABAN (FIX BUG VALIDASI)
+      const rawAnswer = this.slots.join('');
+      const answer = rawAnswer.replace(/\s+/g,'').toLowerCase();
+
+      // 🔥 FEEDBACK CEPAT (UX)
+      this.inputClass = 'bg-yellow-100 border-yellow-400';
+
       fetch('/guess/duo/answer',{
         method:'POST',
         headers:{
@@ -205,7 +210,7 @@ function guessDuo(){
         },
         body:JSON.stringify({
           question_id:this.current.id,
-          answer:this.slots.join('').trim(),
+          answer: answer,
           player:this.currentTurn
         })
       })
@@ -217,9 +222,8 @@ function guessDuo(){
           this.score[this.currentTurn]++;
           this.nextStartTurn = this.currentTurn;
 
-          setTimeout(()=> this.nextQuestion(),700);
+          setTimeout(()=> this.nextQuestion(),250);
         } else {
-          // ❌ SALAH (TAPI WAKTU MASIH ADA)
           this.showWrongFeedback();
         }
       })
@@ -239,8 +243,7 @@ function guessDuo(){
         this.shake = false;
         this.slots = this.slots.map(()=> '');
         this.inputClass = '';
-        // ❗ TIDAK PINDAH TURN
-      },600);
+      },250); // 🔥 DIPERCEPAT
     },
 
     nextQuestion(){

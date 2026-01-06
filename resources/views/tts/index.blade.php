@@ -153,7 +153,14 @@ function ttsApp(){
       this.gameOver = false;
       this.resultType = null;
       this.solvedWords = {};
-      
+      this.wordStatus = {};
+      this.lockedCells = {};
+
+      if (this.timer) {
+        clearInterval(this.timer);
+        this.timer = null;
+        }
+
       this.inputs = this.grid.map(r => r.map(c => c === null ? null : ''));
 
       // 🔥 hanya entry bernomor
@@ -170,15 +177,23 @@ function ttsApp(){
     },
 
     startTimer(){
-      this.timer = setInterval(()=>{
-        this.timeLeft--;
-        if(this.timeLeft <= 0){
-          clearInterval(this.timer);
-          this.gameOver = true;
-          this.resultType = 'lose';
-        }
-      },1000);
-    },
+  // 🔒 pastikan tidak ada timer ganda
+  if (this.timer) {
+    clearInterval(this.timer);
+    this.timer = null;
+  }
+
+  this.timer = setInterval(() => {
+    this.timeLeft--;
+
+    if (this.timeLeft <= 0) {
+      clearInterval(this.timer);
+      this.timer = null;
+      this.gameOver = true;
+      this.resultType = 'lose';
+    }
+  }, 1000);
+},
 
     onInput(){
       this.validateWords();

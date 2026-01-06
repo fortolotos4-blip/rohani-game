@@ -137,6 +137,10 @@ function guessDuo(){
     timerId: null,
 
     slots: [],
+    lockedIndexes: [],
+    revealedIndexes: [],
+    wrongAttempts: 0,
+
     isSubmitting: false,
     inputClass: '',
     shake: false,
@@ -160,8 +164,12 @@ function guessDuo(){
         this.showSummary = true;
         return;
       }
+
       const len = this.current.answer_slots ?? 0;
       this.slots = Array.from({length:len}).map(()=> '');
+      this.lockedIndexes = [];
+      this.revealedIndexes = [];
+      this.wrongAttempts = 0;
       this.inputClass = '';
     },
 
@@ -175,6 +183,11 @@ function guessDuo(){
       if(this.timerId) clearInterval(this.timerId);
       this.timerId = setInterval(()=>{
         this.timeLeft--;
+
+        if(this.timeLeft === 5){
+          this.revealHintIfNeeded();
+        }
+
         if(this.timeLeft <= 0){
           clearInterval(this.timerId);
           this.onTimeout();
@@ -191,16 +204,16 @@ function guessDuo(){
       }
     },
 
+    normalize(str){
+      return str.toLowerCase().replace(/[^a-z0-9]/g,'');
+    },
+
     submit(){
       if(this.isSubmitting) return;
       this.isSubmitting = true;
 
-      // 🔥 NORMALISASI JAWABAN (FIX BUG VALIDASI)
       const rawAnswer = this.slots.join('');
-      const answer = rawAnswer.replace(/\s+/g,'').toLowerCase();
-
-      // 🔥 FEEDBACK CEPAT (UX)
-      this.inputClass = 'bg-yellow-100 border-yellow-400';
+      const answer = this.normalize(rawAnswer);
 
       fetch('/guess/duo/answer',{
         method:'POST',
@@ -217,33 +230,65 @@ function guessDuo(){
       .then(r=>r.ok ? r.json() : Promise.reject())
       .then(data=>{
         if(data.correct){
-          // ✅ BENAR
           this.inputClass = 'bg-green-100 border-green-500';
           this.score[this.currentTurn]++;
           this.nextStartTurn = this.currentTurn;
 
-          setTimeout(()=> this.nextQuestion(),250);
+          setTimeout(()=> this.nextQuestion(),200);
         } else {
-          this.showWrongFeedback();
+          this.handleWrong();
         }
       })
       .catch(()=>{
-        this.showWrongFeedback();
+        this.handleWrong();
       })
       .finally(()=>{
         this.isSubmitting = false;
       });
     },
 
-    showWrongFeedback(){
+    handleWrong(){
+      this.wrongAttempts++;
       this.inputClass = 'bg-red-100 border-red-500';
       this.shake = true;
 
       setTimeout(()=>{
         this.shake = false;
-        this.slots = this.slots.map(()=> '');
         this.inputClass = '';
-      },250); // 🔥 DIPERCEPAT
+        this.slots = this.slots.map((v,i)=>
+          this.lockedIndexes.includes(i) ? v : ''
+        );
+        this.revealHintIfNeeded();
+      },200);
+    },
+
+    revealHintIfNeeded(){
+      if(
+        this.wrongAttempts === 2 ||
+        this.wrongAttempts === 4 ||
+        this.timeLeft <= 5
+      ){
+        this.revealHintLetter();
+      }
+    },
+
+    revealHintLetter(){
+      const answer = this.normalize(this.current.answer_text);
+
+      const candidates = this.slots
+        .map((v,i)=>({v,i}))
+        .filter(o =>
+          !o.v &&
+          !this.revealedIndexes.includes(o.i)
+        );
+
+      if(!candidates.length) return;
+
+      const pick = candidates[Math.floor(candidates.length / 2)];
+
+      this.slots[pick.i] = answer[pick.i].toUpperCase();
+      this.revealedIndexes.push(pick.i);
+      this.lockedIndexes.push(pick.i);
     },
 
     nextQuestion(){
@@ -255,6 +300,8 @@ function guessDuo(){
     },
 
     onCharInput(i){
+      if(this.lockedIndexes.includes(i)) return;
+
       const el = event.target;
       if(el.value && i < this.slots.length - 1){
         el.nextElementSibling?.focus();

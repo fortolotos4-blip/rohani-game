@@ -102,7 +102,10 @@
 
   <!-- GAME OVER -->
   <div x-show="gameOver"
-       class="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+     x-cloak
+     x-transition.opacity
+     class="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+
     <div class="bg-white p-6 rounded text-center w-80">
       <h2 class="text-xl font-bold mb-2"
           x-text="resultType === 'win' ? '🎉 Selamat!' : '⏰ Waktu Habis'"></h2>
@@ -147,6 +150,10 @@ function ttsApp(){
     solvedWords: {},
 
     init(){
+      this.gameOver = false;
+      this.resultType = null;
+      this.solvedWords = {};
+      
       this.inputs = this.grid.map(r => r.map(c => c === null ? null : ''));
 
       // 🔥 hanya entry bernomor

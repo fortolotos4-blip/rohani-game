@@ -160,6 +160,7 @@ function guessDuo(){
         this.showSummary = true;
         return;
       }
+
       const len = this.current.answer_slots ?? 0;
       this.slots = Array.from({length:len}).map(()=> '');
       this.inputClass = '';
@@ -175,7 +176,7 @@ function guessDuo(){
       if(this.timerId) clearInterval(this.timerId);
       this.timerId = setInterval(()=>{
         this.timeLeft--;
-        if(this.timeLeft<=0){
+        if(this.timeLeft <= 0){
           clearInterval(this.timerId);
           this.onTimeout();
         }
@@ -183,18 +184,18 @@ function guessDuo(){
     },
 
     onTimeout(){
-      if(this.currentTurn==='A'){
+      // waktu habis → pindah turn / soal
+      if(this.currentTurn === 'A'){
         this.startTurn('B');
-      }else{
-        this.nextStartTurn='A';
+      } else {
+        this.nextStartTurn = 'A';
         this.nextQuestion();
       }
     },
 
     submit(){
       if(this.isSubmitting) return;
-      this.isSubmitting=true;
-      clearInterval(this.timerId);
+      this.isSubmitting = true;
 
       fetch('/guess/duo/answer',{
         method:'POST',
@@ -208,34 +209,38 @@ function guessDuo(){
           player:this.currentTurn
         })
       })
-      .then(r=>r.ok?r.json():Promise.reject())
+      .then(r=>r.ok ? r.json() : Promise.reject())
       .then(data=>{
         if(data.correct){
-          this.inputClass='bg-green-100 border-green-500';
+          // ✅ BENAR
+          this.inputClass = 'bg-green-100 border-green-500';
           this.score[this.currentTurn]++;
-          this.nextStartTurn=this.currentTurn;
+          this.nextStartTurn = this.currentTurn;
 
-          setTimeout(()=> this.nextQuestion(),600);
-        }else{
-          this.inputClass='bg-red-100 border-red-500';
-          this.shake=true;
-
-          setTimeout(()=>{
-            this.shake=false;
-            this.slots=this.slots.map(()=> '');
-            this.inputClass='';
-            this.currentTurn==='A'
-              ? this.startTurn('B')
-              : (this.nextStartTurn='A', this.nextQuestion());
-          },600);
+          setTimeout(()=> this.nextQuestion(),700);
+        } else {
+          // ❌ SALAH (TAPI WAKTU MASIH ADA)
+          this.showWrongFeedback();
         }
       })
       .catch(()=>{
-        this.currentTurn==='A'
-          ? this.startTurn('B')
-          : (this.nextStartTurn='A', this.nextQuestion());
+        this.showWrongFeedback();
       })
-      .finally(()=> this.isSubmitting=false);
+      .finally(()=>{
+        this.isSubmitting = false;
+      });
+    },
+
+    showWrongFeedback(){
+      this.inputClass = 'bg-red-100 border-red-500';
+      this.shake = true;
+
+      setTimeout(()=>{
+        this.shake = false;
+        this.slots = this.slots.map(()=> '');
+        this.inputClass = '';
+        // ❗ TIDAK PINDAH TURN
+      },600);
     },
 
     nextQuestion(){
@@ -247,19 +252,20 @@ function guessDuo(){
     },
 
     onCharInput(i){
-      const el=event.target;
-      if(el.value && i<this.slots.length-1){
+      const el = event.target;
+      if(el.value && i < this.slots.length - 1){
         el.nextElementSibling?.focus();
       }
     },
 
     get bluePercent(){
-      const t=this.score.A+this.score.B;
-      return t?Math.round(this.score.A/t*100):0;
+      const t = this.score.A + this.score.B;
+      return t ? Math.round(this.score.A / t * 100) : 0;
     },
+
     get redPercent(){
-      const t=this.score.A+this.score.B;
-      return t?Math.round(this.score.B/t*100):0;
+      const t = this.score.A + this.score.B;
+      return t ? Math.round(this.score.B / t * 100) : 0;
     }
   }
 }

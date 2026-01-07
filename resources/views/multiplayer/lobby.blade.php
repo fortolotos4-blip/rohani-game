@@ -87,27 +87,39 @@ function multiplayerLobby(roomCode){
     takenPicks: [],
 
     init(){
-  this.fetchLobby();
-  this.mePicked = localStorage.getItem('picked_'+this.room.code) === '1';
+  this.mePicked =
+    localStorage.getItem('picked_' + this.room.code) === '1';
 
-  this.pollId = setInterval(this.fetchLobby, 3000);
+  this.fetchLobby();
+
+  this.pollId = setInterval(() => {
+    this.fetchLobby();
+  }, 3000);
 },
 
     fetchLobby(){
+  // ⛔ JANGAN LANJUT JIKA CODE HILANG
+  if (!this.room || !this.room.code) {
+    console.warn('Room code missing, skip fetch');
+    return;
+  }
+
   fetch(`/api/multiplayer/lobby/${this.room.code}`)
     .then(r => {
       if (!r.ok) throw new Error(`HTTP ${r.status}`);
       return r.json();
     })
     .then(data => {
-      this.room = {
-        ...data.room,
-        code: data.room.room_code
-      };
+      if (!data || !data.room) return;
+
+      // ✅ UPDATE FIELD, JANGAN OVERWRITE OBJECT
+      this.room.status = data.room.status;
+      this.room.max_players = data.room.max_players;
+
       this.players = data.players;
       this.takenPicks = data.taken_picks ?? [];
 
-      // ✅ SERVER = SOURCE OF TRUTH UNTUK PICK
+      // ✅ DETEKSI PICK DARI SERVER (BUKAN LOCAL)
       const me = {{ session('multiplayer_player_id') ?? 'null' }};
       if (me) {
         const myPick =
@@ -115,6 +127,7 @@ function multiplayerLobby(roomCode){
         this.mePicked = !!myPick;
       }
 
+      // ✅ PINDAH KE GAME SAAT READY
       if (this.room.status === 'playing') {
         clearInterval(this.pollId);
         window.location.href =
@@ -123,7 +136,7 @@ function multiplayerLobby(roomCode){
     })
     .catch(err => {
       console.warn('fetchLobby failed:', err.message);
-      // ⛔ jangan ubah state saat error (anti flicker)
+      // ❌ JANGAN RESET STATE
     });
 },
 

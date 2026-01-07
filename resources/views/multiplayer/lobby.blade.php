@@ -94,7 +94,7 @@ function multiplayerLobby(roomCode){
 
   this.pollId = setInterval(() => {
     this.fetchLobby();
-  }, 3000);
+  }, 6000);
 },
 
     fetchLobby(){

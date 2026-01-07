@@ -195,50 +195,47 @@ function multiplayerGame(roomCode){
 },
 
 
-    fetchState(){
-      if (this.gameOver) return;
-      fetch(`/api/multiplayer/game-state/${this.roomCode}`)
-        .then(r=>r.json())
-        .then(d=>{
-          this.players = d.players;
-          this.sessionLeft = d.session_left;
-          this.question = d.question;
-          this.currentTurnId = d.current_turn_player_id;
-          this.turnLeft = d.turn_left;
-          const incoming = d.stickers ?? [];
+   fetchState(){
+  if (this.gameOver) return;
 
-          // ambil hanya sticker baru
-          const fresh = incoming.filter(s => s.id > this.lastStickerId);
+  fetch(`/api/multiplayer/game-state/${this.roomCode}`)
+    .then(r => r.json())
+    .then(d => {
+      this.players = d.players;
+      this.sessionLeft = d.session_left;
+      this.question = d.question;
+      this.currentTurnId = d.current_turn_player_id;
+      this.turnLeft = d.turn_left;
 
-          fresh.forEach(s => {
-            this.stickersLive.push(s);
+      const incoming = d.stickers ?? [];
 
-            // auto remove setelah 3 detik
-            setTimeout(() => {
-              this.stickersLive = this.stickersLive.filter(x => x.id !== s.id);
-            }, 3000);
-          });
+      const fresh = incoming.filter(s => s.id > this.lastStickerId);
 
-          if (fresh.length) {
-            this.lastStickerId = fresh.at(-1).id;
-          }
+      fresh.forEach(s => {
+        this.stickersLive.push(s);
+        setTimeout(() => {
+          this.stickersLive = this.stickersLive.filter(x => x.id !== s.id);
+        }, 3000);
+      });
 
-          if(d.last_validation){
-            this.lastValidation = d.last_validation;
-            setTimeout(()=>this.lastValidation=null,1500);
-          }
+      if (fresh.length) {
+        this.lastStickerId = fresh.at(-1).id;
+      }
 
-          if(this.sessionLeft <= 0){
-            this.gameOver = true;
-            clearInterval(this.pollId);
+      if (d.last_validation) {
+        this.lastValidation = d.last_validation;
+        setTimeout(() => this.lastValidation = null, 1500);
+      }
 
-          }
-          if(d.room_status === 'finished'){
-          this.gameOver = true;
-        }
-        .catch(() => {});
-        });
-    },
+      if (this.sessionLeft <= 0 || d.room_status === 'finished') {
+        this.gameOver = true;
+        clearInterval(this.pollId);
+      }
+    })
+    .catch(() => {
+      // silently ignore polling error
+    });
+},
 
     submit(){
       if(this.submitting) return;

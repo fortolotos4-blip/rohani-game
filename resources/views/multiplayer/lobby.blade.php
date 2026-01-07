@@ -24,7 +24,7 @@
     <div class="grid grid-cols-2 gap-2">
       <template x-for="(player, index) in players" :key="player.id">
         <div class="px-3 py-2 bg-gray-100 rounded text-sm font-medium">
-          <span x-text="player.name"></span>
+          <span x-text="player.player_name"></span>
         </div>
       </template>
 
@@ -50,8 +50,7 @@
       </p>
 
       <div
-        class="grid gap-3"
-        :class="players.length <= 2 ? 'grid-cols-2' : 'grid-cols-2'"
+        class="grid grid-cols-2 gap-3"
       >
         <template x-for="(box, i) in players.length" :key="i">
           <button
@@ -86,28 +85,35 @@ function multiplayerLobby(roomCode){
     pollId: null,
 
     init(){
-      this.fetchLobby();
-      this.pollId = setInterval(() => {
-        this.fetchLobby();
-        if(this.room.status === 'picking'){
-          this.checkPickingDone();
-        }
-      }, 1200);
-    },
+  this.fetchLobby();
+  this.mePicked = localStorage.getItem('picked_'+this.room.code) === '1';
+
+  this.pollId = setInterval(() => {
+    this.fetchLobby();
+  }, 1200);
+},
+
 
     fetchLobby(){
-      fetch(`/api/multiplayer/lobby/${this.room.code}`)
-        .then(r => r.json())
-        .then(data => {
-          this.room = data.room;
-          this.players = data.players;
-        });
-    },
+  fetch(`/api/multiplayer/lobby/${this.room.code}`)
+    .then(r => r.json())
+    .then(data => {
+      this.room = data.room;
+      this.players = data.players;
+
+      if(this.room.status === 'playing'){
+        clearInterval(this.pollId);
+        localStorage.removeItem('picked_'+this.room.code);
+        window.location.href =
+          `/multiplayer/game/${this.room.code}`;
+      }
+    });
+},
 
     pickBox(index){
   if(this.mePicked) return;
   this.mePicked = true;
-
+localStorage.setItem('picked_'+this.room.code, '1');
   fetch('/api/multiplayer/pick', {
     method: 'POST',
     headers: {
@@ -120,17 +126,6 @@ function multiplayerLobby(roomCode){
     })
   });
 },
-
-    checkPickingDone(){
-      fetch(`/api/multiplayer/picking-state/${this.room.code}`)
-        .then(r => r.json())
-        .then(data => {
-          if(data.done){
-            clearInterval(this.pollId);
-            window.location.href = `/multiplayer/game/${this.room.code}`;
-          }
-        });
-    },
 
     get emptySlots(){
       return Math.max(this.room.max_players - this.players.length, 0);

@@ -100,9 +100,9 @@ Route::prefix('multiplayer')->group(function () {
     Route::get('/menu', fn () => view('multiplayer.menu'))
         ->name('multiplayer.menu');
 
-    Route::get('/lobby/{code}', fn ($code) =>
-        view('multiplayer.lobby', compact('code'))
-    );
+    Route::get('/multiplayer/lobby/{roomCode}', function ($roomCode) {
+    return view('multiplayer.lobby', compact('roomCode'));
+});
 
     Route::get('/game/{roomCode}', fn ($roomCode) =>
     view('multiplayer.game', compact('roomCode'))

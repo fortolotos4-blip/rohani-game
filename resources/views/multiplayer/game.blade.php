@@ -186,9 +186,9 @@ function multiplayerGame(roomCode){
     init(){
   if(!localStorage.getItem('mp_player_id')){
     localStorage.setItem(
-      'mp_player_id',
-      {{ session('multiplayer_player_id') ?? 'null' }}
-    );
+  'mp_player_id',
+  {{ session('multiplayer_player_id') ? session('multiplayer_player_id') : '0' }}
+);
   }
   this.fetchState();
   this.pollId = setInterval(this.fetchState, 2000);
@@ -275,10 +275,7 @@ function multiplayerGame(roomCode){
 
     get isMyTurn(){
   const sessionId = {{ session('multiplayer_player_id') ?? 'null' }};
-  const me = sessionId !== null
-    ? sessionId
-    : parseInt(localStorage.getItem('mp_player_id'));
-
+  const me = Number(localStorage.getItem('mp_player_id')) || null;
   return this.currentTurnId === me;
 },
 

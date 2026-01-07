@@ -37,44 +37,6 @@
     </div>
   </div>
 
-  <!-- PICKING OVERLAY -->
-  <div
-    x-show="room.status === 'picking'"
-    x-cloak
-    class="fixed inset-0 bg-black/50 flex items-center justify-center z-50"
-  >
-    <div class="bg-white rounded p-6 w-80 text-center">
-      <h3 class="text-lg font-bold mb-4">Undian Giliran</h3>
-      <p class="text-sm mb-4 text-gray-600">
-        Pilih satu kotak untuk menentukan urutan.
-      </p>
-
-      <div
-        class="grid grid-cols-2 gap-3"
-      >
-        <template x-for="(box, i) in players.length" :key="i">
-          <button
-          @click="pickBox(i)"
-          :disabled="hasPicked || takenPicks.includes(i + 1)"
-          class="h-14 rounded border text-xl font-bold
-                bg-gray-200 hover:bg-gray-300 disabled:opacity-40"
-        >
-          <span
-  x-text="
-    players.find(p => p.pick_order === i + 1)
-      ? (i + 1)
-      : '❓'
-  "
-></span>
-        </button>
-
-        </template>
-      </div>
-
-      <p class="text-xs text-gray-500 mt-4" x-show="hasPicked">
-        Menunggu pemain lain…
-      </p>
-    </div>
   </div>
 
 </div>
@@ -88,117 +50,49 @@ function multiplayerLobby(roomCode){
       max_players: 4
     },
     players: [],
-    mePicked: false,
     pollId: null,
-    takenPicks: [],
 
     init(){
-  this.mePicked =
-    localStorage.getItem('picked_' + this.room.code) === '1';
-
-  this.fetchLobby();
-
-  this.pollId = setInterval(() => {
-    // ⛔ STOP POLLING JIKA SUDAH PLAYING
-    if (this.room.status === 'playing') {
-      clearInterval(this.pollId);
-      return;
-    }
-    this.fetchLobby();
-  }, 5000);
-},
+      this.fetchLobby();
+      this.pollId = setInterval(() => {
+        this.fetchLobby();
+      }, 5000);
+    },
 
     fetchLobby(){
-  // ⛔ JANGAN LANJUT JIKA CODE HILANG
-  if (!this.room || !this.room.code) {
-    console.warn('Room code missing, skip fetch');
-    return;
-  }
+      if (!this.room || !this.room.code) return;
 
-  fetch(`/api/multiplayer/lobby/${this.room.code}`)
-    .then(r => {
-      if (!r.ok) throw new Error(`HTTP ${r.status}`);
-      return r.json();
-    })
-    .then(data => {
-      if (!data || !data.room) return;
+      fetch(`/api/multiplayer/lobby/${this.room.code}`)
+        .then(r => {
+          if (!r.ok) throw new Error(`HTTP ${r.status}`);
+          return r.json();
+        })
+        .then(data => {
+          if (!data || !data.room) return;
 
-      // ✅ UPDATE FIELD, JANGAN OVERWRITE OBJECT
-      this.room.status = data.room.status;
-      this.room.max_players = data.room.max_players;
+          this.room.status = data.room.status;
+          this.room.max_players = data.room.max_players;
+          this.players = data.players;
 
-      this.players = data.players;
-      this.takenPicks = data.taken_picks ?? [];
-      console.log('TAKEN PICKS FROM SERVER', this.takenPicks);
-
-
-      // ✅ DETEKSI PICK DARI SERVER (BUKAN LOCAL)
-      const me = {{ session('multiplayer_player_id') ?? 'null' }};
-      if (me) {
-        const myPick =
-          this.players.find(p => p.id === me)?.pick_order;
-        this.mePicked = !!myPick;
-      }
-
-      // ✅ PINDAH KE GAME SAAT READY
-      if (this.room.status === 'playing') {
-        clearInterval(this.pollId);
-        window.location.href =
-          `/multiplayer/game/${this.room.code}`;
-      }
-    })
-    .catch(err => {
-      console.warn('fetchLobby failed:', err.message);
-      // ❌ JANGAN RESET STATE
-    });
-},
-
-    pickBox(index){
-  if (this.mePicked) return;
-
-  this.mePicked = true;
-  localStorage.setItem('picked_'+this.room.code, '1');
-
-  fetch('/api/multiplayer/pick', {
-  method: 'POST',
-  headers: {
-    'Content-Type': 'application/json',
-    'X-CSRF-TOKEN': '{{ csrf_token() }}'
-  },
-  body: JSON.stringify({
-    room_code: this.room.code,
-    pick: index + 1
-  })
-})
-.then(r => {
-  if (!r.ok) throw new Error('Pick failed');
-  return r.json();
-})
-.then(() => {
-  this.mePicked = true;
-  localStorage.setItem('picked_'+this.room.code, '1');
-  this.fetchLobby();
-})
-.catch(() => {
-  this.mePicked = false;
-  localStorage.removeItem('picked_'+this.room.code);
-});
-
-},
+          if (this.room.status === 'playing') {
+            clearInterval(this.pollId);
+            window.location.href =
+              `/multiplayer/game/${this.room.code}`;
+          }
+        })
+        .catch(err => {
+          console.warn('fetchLobby failed:', err.message);
+        });
+    },
 
     get emptySlots(){
       return Math.max(this.room.max_players - this.players.length, 0);
     },
 
-    get hasPicked(){
-      return this.mePicked;
-    },
-
     get statusText(){
       switch(this.room.status){
         case 'waiting': return 'Menunggu pemain lain…';
-        case 'picking': return 'Undian giliran sedang berlangsung';
-        case 'playing': return 'Game dimulai';
+        case 'playing': return 'Game dimulai…';
         default: return '';
       }
     }

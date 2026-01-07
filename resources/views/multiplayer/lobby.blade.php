@@ -93,8 +93,13 @@ function multiplayerLobby(roomCode){
   this.fetchLobby();
 
   this.pollId = setInterval(() => {
+    // ⛔ STOP POLLING JIKA SUDAH PLAYING
+    if (this.room.status === 'playing') {
+      clearInterval(this.pollId);
+      return;
+    }
     this.fetchLobby();
-  }, 6000);
+  }, 5000);
 },
 
     fetchLobby(){
@@ -157,8 +162,11 @@ function multiplayerLobby(roomCode){
       pick: index + 1
     })
   })
+  .then(() => {
+    // 🔥 PAKSA REFRESH STATE SETELAH PICK
+    setTimeout(() => this.fetchLobby(), 500);
+  })
   .catch(() => {
-    // jika gagal, buka kembali (opsional)
     this.mePicked = false;
     localStorage.removeItem('picked_'+this.room.code);
   });

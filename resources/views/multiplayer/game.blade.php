@@ -171,7 +171,7 @@ function multiplayerGame(roomCode){
     );
   }
   this.fetchState();
-  this.pollId = setInterval(this.fetchState, 1200);
+  this.pollId = setInterval(this.fetchState, 2000);
 },
 
 

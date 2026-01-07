@@ -59,7 +59,13 @@
           class="h-14 rounded border text-xl font-bold
                 bg-gray-200 hover:bg-gray-300 disabled:opacity-40"
         >
-          <span x-text="takenPicks.includes(i + 1) ? '⛔' : '❓'"></span>
+          <span
+  x-text="
+    players.find(p => p.pick_order === i + 1)
+      ? (i + 1)
+      : '❓'
+  "
+></span>
         </button>
 
         </template>
@@ -152,24 +158,30 @@ function multiplayerLobby(roomCode){
   localStorage.setItem('picked_'+this.room.code, '1');
 
   fetch('/api/multiplayer/pick', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'X-CSRF-TOKEN': '{{ csrf_token() }}'
-    },
-    body: JSON.stringify({
-      room_code: this.room.code,
-      pick: index + 1
-    })
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json',
+    'X-CSRF-TOKEN': '{{ csrf_token() }}'
+  },
+  body: JSON.stringify({
+    room_code: this.room.code,
+    pick: index + 1
   })
-  .then(() => {
-    // 🔥 PAKSA REFRESH STATE SETELAH PICK
-    setTimeout(() => this.fetchLobby(), 500);
-  })
-  .catch(() => {
-    this.mePicked = false;
-    localStorage.removeItem('picked_'+this.room.code);
-  });
+})
+.then(r => {
+  if (!r.ok) throw new Error('Pick failed');
+  return r.json();
+})
+.then(() => {
+  this.mePicked = true;
+  localStorage.setItem('picked_'+this.room.code, '1');
+  this.fetchLobby();
+})
+.catch(() => {
+  this.mePicked = false;
+  localStorage.removeItem('picked_'+this.room.code);
+});
+
 },
 
     get emptySlots(){

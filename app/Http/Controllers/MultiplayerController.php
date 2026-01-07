@@ -126,6 +126,7 @@ class MultiplayerController extends Controller
         ->update([
             'status' => 'playing',
             'current_turn_player_id' => $players[0],
+            'game_started_at' => now(),
             'turn_started_at' => now(),
             'turn_locked' => false,
         ]);
@@ -173,9 +174,9 @@ class MultiplayerController extends Controller
     }
 
     /*
-    |--------------------------------------------------------------------------
-    | GAME OVER CHECK (SATU KALI, DI AWAL)
-    |--------------------------------------------------------------------------
+    |----------------------------------------------------------------------
+    | GAME OVER CHECK
+    |----------------------------------------------------------------------
     */
     if (
         $room->status === 'playing' &&
@@ -190,9 +191,9 @@ class MultiplayerController extends Controller
     }
 
     /*
-    |--------------------------------------------------------------------------
-    | AUTO SKIP TURN (HANYA JIKA MASIH PLAYING)
-    |--------------------------------------------------------------------------
+    |----------------------------------------------------------------------
+    | AUTO SKIP TURN
+    |----------------------------------------------------------------------
     */
     if (
         $room->status === 'playing' &&
@@ -200,7 +201,6 @@ class MultiplayerController extends Controller
         $room->turn_started_at &&
         now()->diffInSeconds($room->turn_started_at) >= 30
     ) {
-        // lock agar tidak double skip
         $locked = DB::table('multiplayer_rooms')
             ->where('id', $room->id)
             ->where('turn_locked', false)
@@ -232,7 +232,6 @@ class MultiplayerController extends Controller
                     'turn_locked' => false,
                 ]);
 
-            // refresh state
             $room = DB::table('multiplayer_rooms')
                 ->where('id', $room->id)
                 ->first();
@@ -240,9 +239,9 @@ class MultiplayerController extends Controller
     }
 
     /*
-    |--------------------------------------------------------------------------
-    | PREPARE DATA UNTUK CLIENT
-    |--------------------------------------------------------------------------
+    |----------------------------------------------------------------------
+    | DATA UNTUK CLIENT
+    |----------------------------------------------------------------------
     */
     $players = DB::table('multiplayer_room_players')
         ->where('room_id', $room->id)
@@ -257,6 +256,30 @@ class MultiplayerController extends Controller
         ->reverse()
         ->values();
 
+    $question = Question::skip($room->current_question_index)->first();
+
+    /*
+|--------------------------------------------------------------------------
+| JIKA SOAL HABIS → AKHIRI GAME
+|--------------------------------------------------------------------------
+*/
+if (!$question) {
+    DB::table('multiplayer_rooms')
+        ->where('id', $room->id)
+        ->update(['status' => 'finished']);
+
+    return response()->json([
+        'room_status' => 'finished',
+        'current_turn_player_id' => null,
+        'turn_left' => 0,
+        'session_left' => 0,
+        'players' => $players,
+        'question' => null,
+        'last_validation' => null,
+        'stickers' => $stickers,
+    ]);
+}
+
     $lastValidation = $room->last_validation
         ? json_decode($room->last_validation, true)
         : null;
@@ -265,26 +288,27 @@ class MultiplayerController extends Controller
         'room_status' => $room->status,
         'current_turn_player_id' => $room->current_turn_player_id,
 
-        // ⏱ TURN TIMER (SERVER SOURCE OF TRUTH)
         'turn_left' => $room->turn_started_at
             ? max(0, 30 - now()->diffInSeconds($room->turn_started_at))
             : null,
 
-        // ⏳ SESSION TIMER
         'session_left' => $room->game_started_at
             ? max(0, 350 - now()->diffInSeconds($room->game_started_at))
             : null,
 
         'players' => $players,
+
+        // ⬅️ KUNCI UNTUK IMAGE & ANSWER SLOT
+        'question' => $question ? [
+            'id' => $question->id,
+            'image' => $question->image_path,
+            'answer_length' => $question->answer_slots,
+        ] : null,
+
         'last_validation' => $lastValidation,
         'stickers' => $stickers,
     ]);
 
-    /*
-    |--------------------------------------------------------------------------
-    | CLEAR LAST VALIDATION (SETELAH DIKIRIM)
-    |--------------------------------------------------------------------------
-    */
     if ($room->last_validation) {
         DB::table('multiplayer_rooms')
             ->where('id', $room->id)
@@ -293,6 +317,7 @@ class MultiplayerController extends Controller
 
     return $response;
 }
+
 
     /* =========================================================
      * ANSWER
@@ -329,19 +354,21 @@ class MultiplayerController extends Controller
         return response()->json(['error' => 'Turn locked'], 409);
     }
 
-    // 🔒 LOCK TURN
     DB::table('multiplayer_rooms')
         ->where('id', $room->id)
         ->update(['turn_locked' => true]);
 
-    // 📘 AMBIL SOAL
     $question = Question::skip($room->current_question_index)->first();
+
+    if (!$question) {
+        DB::rollBack();
+        return response()->json(['error' => 'No more questions'], 410);
+    }
 
     $correct =
         $this->normalize($request->answer) ===
         $this->normalize($question->answer_text);
 
-    // 📝 SIMPAN VALIDASI
     DB::table('multiplayer_rooms')
         ->where('id', $room->id)
         ->update([
@@ -353,7 +380,6 @@ class MultiplayerController extends Controller
             'updated_at' => now(),
         ]);
 
-    // 🎯 JIKA BENAR → TAMBAH SKOR & SOAL
     if ($correct) {
         DB::table('multiplayer_room_players')
             ->where('id', $playerId)
@@ -366,7 +392,6 @@ class MultiplayerController extends Controller
             ]);
     }
 
-    // 🔁 ROTASI GILIRAN (PAKAI turn_order)
     $currentOrder = DB::table('multiplayer_room_players')
         ->where('id', $playerId)
         ->value('turn_order');
@@ -384,7 +409,6 @@ class MultiplayerController extends Controller
             ->first();
     }
 
-    // ▶️ PINDAH GILIRAN
     DB::table('multiplayer_rooms')
         ->where('id', $room->id)
         ->update([

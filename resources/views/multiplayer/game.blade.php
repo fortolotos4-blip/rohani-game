@@ -2,7 +2,7 @@
 
 @section('content')
 <div
-  x-data="multiplayerGame('{{ $roomCode }}')"
+  x-data="multiplayerGame(@js($roomCode))"
   x-init="init()"
   class="relative max-w-6xl mx-auto p-4 overflow-hidden"
 >
@@ -40,6 +40,27 @@
     </div>
   </div>
 
+  <div class="flex justify-center gap-1 mb-2">
+  <template x-for="p in players" :key="p.id">
+    <div
+      class="w-10 h-2 rounded"
+      :class="colorClass(p.color)"
+      x-text="p.score"
+    ></div>
+  </template>
+</div>
+
+<template x-for="s in stickersLive" :key="s.id">
+  <div
+    class="absolute"
+    :class="positionClass(
+      players.findIndex(p => p.id === s.player_id)
+    )"
+  >
+    <span x-text="s.sticker"></span>
+  </div>
+</template>
+
   <!-- PLAYER POSITIONS -->
   <div class="relative h-[520px]">
 
@@ -64,7 +85,7 @@
 
         <!-- TIMERS -->
         <div class="flex justify-between text-xs font-semibold mb-2">
-          <div>⏳ Game: <span x-text="sessionLeft"></span>s</div>
+          <div>⏳ Game: <span x-text="sessionLeft ?? '-'"></span>s</div>
           <div :class="turnLeft<=5 ? 'text-red-600 animate-pulse':''">
             🎯 Giliran: <span x-text="turnLeft"></span>s
           </div>
@@ -110,14 +131,9 @@
   x-show="lastValidation"
   x-transition
   class="text-center text-sm font-semibold"
-  :class="[
-    lastValidation.correct ? 'text-green-600' : 'text-red-600 shake',
-    lastValidation.player_id === currentTurnId ? 'ring-2 ring-indigo-400' : ''
-  ]"
->
+  :class="[lastValidation && lastValidation.correct ? 'text-green-600' : 'text-red-600 shake']">
           <span x-text="validationText"></span>
         </div>
-
       </div>
     </div>
   </div>
@@ -146,7 +162,7 @@ function multiplayerGame(roomCode){
     players: [],
     currentTurnId: null,
     stickersLive: [],
-    sessionLeft: 0,
+    sessionLeft: 350,
     turnLeft: 30,
 
     lastStickerId: 0,
@@ -155,13 +171,17 @@ function multiplayerGame(roomCode){
     submitting: false,
     lastValidation: null,
 
+    question: null,
     pollId: null,
 
     stickers: ['👍','😂','🔥','😱','👏'],
     stickerCooldown: false,
 
-    answerSlots: 6,
     gameOver: false,
+
+    get answerSlots(){
+  return this.question ? this.question.answer_length : 0;
+},
 
     init(){
   if(!localStorage.getItem('mp_player_id')){
@@ -182,6 +202,7 @@ function multiplayerGame(roomCode){
         .then(d=>{
           this.players = d.players;
           this.sessionLeft = d.session_left;
+          this.question = d.question;
           this.currentTurnId = d.current_turn_player_id;
           this.turnLeft = d.turn_left;
           const incoming = d.stickers ?? [];
@@ -215,7 +236,7 @@ function multiplayerGame(roomCode){
           if(d.room_status === 'finished'){
           this.gameOver = true;
         }
-
+        .catch(() => {});
         });
     },
 
@@ -265,12 +286,18 @@ function multiplayerGame(roomCode){
 },
 
     get validationText(){
-      return this.lastValidation?.correct ? 'Jawaban BENAR!' : 'Jawaban SALAH!';
-    },
+  if(!this.lastValidation) return '';
+  return this.lastValidation.correct
+    ? 'Jawaban BENAR!'
+    : 'Jawaban SALAH!';
+},
+
 
     get imageSrc(){
-      return '/images/placeholder.png';
-    },
+  if (!this.question || !this.question.image) return '';
+  return '/' + this.question.image;
+},
+
 
     positionClass(i){
       return ['top-left','top-right','bottom-left','bottom-right'][i] || '';

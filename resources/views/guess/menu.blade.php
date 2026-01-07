@@ -20,6 +20,15 @@
         <a href="{{ route('guess.duo') }}" class="px-4 py-2 bg-red-600 text-white rounded">Main</a>
       </div>
     </div>
+
+    <div class="bg-white p-4 rounded shadow">
+      <h3 class="font-semibold mb-2">Multiplayer</h3>
+      <p class="text-sm text-gray-600">Main Online, 2 - 4 Orang.</p>
+      <div class="mt-4 text-right">
+        <a href="{{ route('multiplayer.menu') }}" class="px-4 py-2 bg-green-600 text-white rounded">Main</a>
+      </div>
+    </div>
+
   </div>
 </div>
 @endsection

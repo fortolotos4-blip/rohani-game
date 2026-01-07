@@ -12,7 +12,7 @@
     <h2 class="text-lg font-bold mb-1">Lobby Multiplayer</h2>
     <p class="text-sm text-gray-600">
       Kode Room:
-      <span class="font-mono font-bold text-indigo-600" x-text="room?.code ?? '-'"></span>
+      <span class="font-mono font-bold text-indigo-600" x-text="room.code"></span>
     </p>
     <p class="mt-2 text-sm font-semibold" x-text="statusText"></p>
   </div>
@@ -94,7 +94,6 @@ function multiplayerLobby(roomCode){
   }, 2000);
 },
 
-
     fetchLobby(){
   fetch(`/api/multiplayer/lobby/${this.room.code}`)
     .then(r => {
@@ -104,15 +103,19 @@ function multiplayerLobby(roomCode){
       return r.json();
     })
     .then(data => {
-      this.room = data.room;
-      this.players = data.players;
+  this.room = {
+    ...data.room,
+    code: data.room.room_code // 🔑 NORMALISASI
+  };
+  this.players = data.players;
 
-      if (this.room.status === 'playing') {
-        clearInterval(this.pollId);
-        window.location.href =
-          `/multiplayer/game/${this.room.code}`;
-      }
-    })
+  if (this.room.status === 'playing') {
+    clearInterval(this.pollId);
+    window.location.href =
+      `/multiplayer/game/${this.room.code}`;
+  }
+})
+
     .catch(err => {
       console.warn('fetchLobby failed:', err.message);
       // ⛔ JANGAN update state saat error

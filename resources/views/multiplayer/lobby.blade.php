@@ -54,13 +54,13 @@
       >
         <template x-for="(box, i) in players.length" :key="i">
           <button
-            @click="pickBox(i)"
-            :disabled="hasPicked"
-            class="h-14 rounded border text-xl font-bold
-                  bg-gray-200 hover:bg-gray-300 disabled:opacity-40"
-          >
-            ❓
-          </button>
+          @click="pickBox(i)"
+          :disabled="hasPicked || takenPicks.includes(i + 1)"
+          class="h-14 rounded border text-xl font-bold
+                bg-gray-200 hover:bg-gray-300 disabled:opacity-40"
+        >
+          <span x-text="takenPicks.includes(i + 1) ? '⛔' : '❓'"></span>
+        </button>
 
         </template>
       </div>
@@ -84,41 +84,46 @@ function multiplayerLobby(roomCode){
     players: [],
     mePicked: false,
     pollId: null,
+    takenPicks: [],
 
     init(){
   this.fetchLobby();
   this.mePicked = localStorage.getItem('picked_'+this.room.code) === '1';
 
-  this.pollId = setInterval(() => {
-    this.fetchLobby();
-  }, 2000);
+  this.pollId = setInterval(this.fetchLobby, 3000);
 },
 
     fetchLobby(){
   fetch(`/api/multiplayer/lobby/${this.room.code}`)
     .then(r => {
-      if (!r.ok) {
-        throw new Error(`HTTP ${r.status}`);
-      }
+      if (!r.ok) throw new Error(`HTTP ${r.status}`);
       return r.json();
     })
     .then(data => {
-  this.room = {
-    ...data.room,
-    code: data.room.room_code // 🔑 NORMALISASI
-  };
-  this.players = data.players;
+      this.room = {
+        ...data.room,
+        code: data.room.room_code
+      };
+      this.players = data.players;
+      this.takenPicks = data.taken_picks ?? [];
 
-  if (this.room.status === 'playing') {
-    clearInterval(this.pollId);
-    window.location.href =
-      `/multiplayer/game/${this.room.code}`;
-  }
-})
+      // ✅ SERVER = SOURCE OF TRUTH UNTUK PICK
+      const me = {{ session('multiplayer_player_id') ?? 'null' }};
+      if (me) {
+        const myPick =
+          this.players.find(p => p.id === me)?.pick_order;
+        this.mePicked = !!myPick;
+      }
 
+      if (this.room.status === 'playing') {
+        clearInterval(this.pollId);
+        window.location.href =
+          `/multiplayer/game/${this.room.code}`;
+      }
+    })
     .catch(err => {
       console.warn('fetchLobby failed:', err.message);
-      // ⛔ JANGAN update state saat error
+      // ⛔ jangan ubah state saat error (anti flicker)
     });
 },
 

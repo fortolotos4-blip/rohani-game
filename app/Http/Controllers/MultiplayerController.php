@@ -125,25 +125,33 @@ class MultiplayerController extends Controller
     }
 
     public function roomState(string $code)
-    {
-        $room = DB::table('multiplayer_rooms')
-            ->where('room_code', $code)
-            ->first();
+{
+    $room = DB::table('multiplayer_rooms')
+        ->where('room_code', $code)
+        ->first();
 
-        if (!$room) {
-            return response()->json(['error' => 'Room not found'], 404);
-        }
-
-        $players = DB::table('multiplayer_room_players')
-            ->where('room_id', $room->id)
-            ->orderBy('id')
-            ->get();
-
-        return response()->json([
-            'room' => $room,
-            'players' => $players,
-        ]);
+    if (!$room) {
+        return response()->json(['error' => 'Room not found'], 404);
     }
+
+    $players = DB::table('multiplayer_room_players')
+        ->where('room_id', $room->id)
+        ->orderBy('id')
+        ->get();
+
+    // ⬇️ TAMBAHKAN INI
+    $takenPicks = $players
+        ->whereNotNull('pick_order')
+        ->pluck('pick_order')
+        ->values();
+
+    return response()->json([
+        'room' => $room,
+        'players' => $players,
+        'taken_picks' => $takenPicks, // 🔑 KUNCI REALTIME
+    ]);
+}
+
 
     /* =========================================================
      * PICK ORDER

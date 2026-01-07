@@ -7,7 +7,7 @@ use App\Http\Controllers\SurpriseController;
 use App\Http\Controllers\PuzzleController;
 use App\Http\Controllers\TtsController;
 use App\Http\Controllers\TtsRoomController;
-
+use App\Http\Controllers\MultiplayerController;
 /*
 |--------------------------------------------------------------------------
 | GENERAL
@@ -95,3 +95,19 @@ Route::prefix('tts/room')->group(function () {
     // PUZZLE
     Route::get('/{code}/puzzle', [TtsRoomController::class,'puzzle']);
 });
+
+Route::prefix('multiplayer')->group(function () {
+    Route::get('/menu', fn () => view('multiplayer.menu'))
+        ->name('multiplayer.menu');
+
+    Route::get('/lobby/{code}', fn ($code) =>
+        view('multiplayer.lobby', compact('code'))
+    );
+
+    Route::get('/game/{roomCode}', fn ($roomCode) =>
+    view('multiplayer.game', compact('roomCode'))
+    );
+
+});
+
+

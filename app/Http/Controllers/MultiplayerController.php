@@ -249,14 +249,18 @@ class MultiplayerController extends Controller
         ->get();
 
     $stickers = DB::table('multiplayer_stickers')
-        ->where('room_code', $code)
-        ->orderBy('id', 'desc')
-        ->limit(5)
-        ->get()
-        ->reverse()
-        ->values();
+    ->where('room_id', $room->id)
+    ->orderBy('id', 'desc')
+    ->limit(5)
+    ->get()
+    ->reverse()
+    ->values();
 
-    $question = Question::skip($room->current_question_index)->first();
+
+    $question = Question::orderBy('id')
+    ->skip($room->current_question_index)
+    ->first();
+
 
     /*
 |--------------------------------------------------------------------------
@@ -306,7 +310,11 @@ if (!$question) {
         ] : null,
 
         'last_validation' => $lastValidation,
-        'stickers' => $stickers,
+        'stickers' => $stickers->map(fn ($s) => [
+        'id'        => $s->id,
+        'player_id' => $s->player_id,
+        'sticker'   => $s->emoji,
+    ]),
     ]);
 
     if ($room->last_validation) {
@@ -358,7 +366,10 @@ if (!$question) {
         ->where('id', $room->id)
         ->update(['turn_locked' => true]);
 
-    $question = Question::skip($room->current_question_index)->first();
+    $question = Question::orderBy('id')
+    ->skip($room->current_question_index)
+    ->first();
+
 
     if (!$question) {
         DB::rollBack();
@@ -445,12 +456,21 @@ if (!$question) {
             return response()->json(['error' => 'Cooldown'], 429);
         }
 
-        DB::table('multiplayer_stickers')->insert([
-            'room_code' => $request->room_code,
-            'player_id' => $playerId,
-            'sticker' => $request->sticker,
-            'created_at' => now(),
-        ]);
+        $room = DB::table('multiplayer_rooms')
+    ->where('room_code', $request->room_code)
+    ->first();
+
+    if (!$room) {
+    return response()->json(['error' => 'Room not found'], 404);
+}
+
+DB::table('multiplayer_stickers')->insert([
+    'room_id'   => $room->id,
+    'player_id' => $playerId,
+    'emoji'     => $request->sticker,
+    'created_at'=> now(),
+]);
+
 
         return response()->json(['success' => true]);
     }

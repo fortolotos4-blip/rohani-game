@@ -4,6 +4,8 @@
 <div
   x-data="multiplayerGame('{{ $roomCode }}')"
   x-init="init()"
+  :key="players.length"
+  x-cloak
   class="relative max-w-6xl mx-auto p-4 overflow-hidden"
 >
 
@@ -286,10 +288,8 @@ function multiplayerGame(roomCode){
     : 'Jawaban SALAH!';
 },
 
-
-    get imageSrc(){
-  if (!this.question || !this.question.image) return '';
-  return '/' + this.question.image;
+get imageSrc(){
+  return this.question?.image ?? '';
 },
 
 

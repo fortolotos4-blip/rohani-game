@@ -57,10 +57,11 @@
             @click="pickBox(i)"
             :disabled="hasPicked"
             class="h-14 rounded border text-xl font-bold
-                   bg-gray-200 hover:bg-gray-300 disabled:opacity-50"
+                  bg-gray-200 hover:bg-gray-300 disabled:opacity-40"
           >
             ❓
           </button>
+
         </template>
       </div>
 
@@ -90,29 +91,21 @@ function multiplayerLobby(roomCode){
 
   this.pollId = setInterval(() => {
     this.fetchLobby();
-  }, 1200);
+  }, 2000);
 },
 
 
     fetchLobby(){
   fetch(`/api/multiplayer/lobby/${this.room.code}`)
     .then(r => {
-      if (!r.ok) throw new Error('HTTP error ' + r.status);
+      if (!r.ok) {
+        throw new Error(`HTTP ${r.status}`);
+      }
       return r.json();
     })
     .then(data => {
-
-      // 🚨 PROTEKSI PALING PENTING
-      if (!data || !data.room) {
-        console.warn('Lobby data invalid, retry next tick', data);
-        return;
-      }
-
-      // update sebagian saja
-      this.room.status = data.room.status;
-      this.room.max_players = data.room.max_players;
-
-      this.players = data.players ?? [];
+      this.room = data.room;
+      this.players = data.players;
 
       if (this.room.status === 'playing') {
         clearInterval(this.pollId);
@@ -121,14 +114,17 @@ function multiplayerLobby(roomCode){
       }
     })
     .catch(err => {
-      console.error('fetchLobby failed', err);
+      console.warn('fetchLobby failed:', err.message);
+      // ⛔ JANGAN update state saat error
     });
 },
 
     pickBox(index){
-  if(this.mePicked) return;
+  if (this.mePicked) return;
+
   this.mePicked = true;
-localStorage.setItem('picked_'+this.room.code, '1');
+  localStorage.setItem('picked_'+this.room.code, '1');
+
   fetch('/api/multiplayer/pick', {
     method: 'POST',
     headers: {
@@ -139,6 +135,11 @@ localStorage.setItem('picked_'+this.room.code, '1');
       room_code: this.room.code,
       pick: index + 1
     })
+  })
+  .catch(() => {
+    // jika gagal, buka kembali (opsional)
+    this.mePicked = false;
+    localStorage.removeItem('picked_'+this.room.code);
   });
 },
 

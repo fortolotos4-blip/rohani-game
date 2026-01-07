@@ -96,7 +96,9 @@ Route::prefix('tts/room')->group(function () {
     Route::get('/{code}/puzzle', [TtsRoomController::class,'puzzle']);
 });
 
-Route::prefix('multiplayer')->group(function () {
+Route::prefix('multiplayer')
+    ->middleware([])
+    ->group(function () {
 
     Route::get('/menu', fn () => view('multiplayer.menu'))
         ->name('multiplayer.menu');

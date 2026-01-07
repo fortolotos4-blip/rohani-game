@@ -46,31 +46,34 @@
     <h3 class="font-semibold mb-3">Gabung Room</h3>
 
     <form
-      x-data="joinRoomForm()"
-      @submit.prevent="submit"
-      class="space-y-3"
-    >
-      <input
-        x-model="player_name"
-        required
-        maxlength="30"
-        class="w-full border rounded px-3 py-2"
-        placeholder="Nama pemain"
-      >
+  x-data="joinRoomForm()"
+  @submit.prevent="submit"
+  class="space-y-3"
+>
+  <input
+    x-model="player_name"
+    required
+    maxlength="30"
+    class="w-full border rounded px-3 py-2"
+    placeholder="Nama pemain"
+  >
 
-      <input
-        x-model="room_code"
-        required
-        class="w-full border rounded px-3 py-2 uppercase"
-        placeholder="Kode Room"
-      >
+  <input
+    x-model="room_code"
+    required
+    class="w-full border rounded px-3 py-2 uppercase"
+    placeholder="Kode Room"
+  >
 
-      <button
-        class="w-full bg-green-600 text-white rounded py-2 font-semibold"
-      >
-        Gabung Room
-      </button>
-    </form>
+  <button
+    :disabled="loading"
+    class="w-full bg-green-600 text-white rounded py-2 font-semibold disabled:opacity-50"
+  >
+    <span x-show="!loading">Gabung Room</span>
+    <span x-show="loading">Memproses...</span>
+  </button>
+</form>
+
   </div>
 
 </div>
@@ -108,8 +111,12 @@ function joinRoomForm(){
   return {
     player_name: '',
     room_code: '',
+    loading: false,
 
     submit(){
+      if (this.loading) return;
+      this.loading = true;
+
       fetch('/api/multiplayer/join', {
         method: 'POST',
         headers: {
@@ -121,12 +128,25 @@ function joinRoomForm(){
           room_code: this.room_code.toUpperCase()
         })
       })
-      .then(r => r.json())
+      .then(async r => {
+        if (!r.ok) {
+          const text = await r.text();
+          throw new Error(text);
+        }
+        return r.json();
+      })
       .then(d => {
-        if(d.success){
+        if (d.success) {
           window.location.href =
             `/multiplayer/lobby/${this.room_code.toUpperCase()}`;
         }
+      })
+      .catch(err => {
+        console.error('Join room failed:', err);
+        alert('Gagal gabung room. Coba lagi.');
+      })
+      .finally(() => {
+        this.loading = false;
       });
     }
   }

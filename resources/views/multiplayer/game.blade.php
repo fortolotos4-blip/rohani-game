@@ -2,7 +2,7 @@
 
 @section('content')
 <div
-  x-data="multiplayerGame(@js($roomCode))"
+  x-data="multiplayerGame('{{ $roomCode }}')"
   x-init="init()"
   class="relative max-w-6xl mx-auto p-4 overflow-hidden"
 >

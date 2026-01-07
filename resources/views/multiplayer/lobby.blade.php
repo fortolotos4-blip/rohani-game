@@ -129,6 +129,8 @@ function multiplayerLobby(roomCode){
 
       this.players = data.players;
       this.takenPicks = data.taken_picks ?? [];
+      console.log('TAKEN PICKS FROM SERVER', this.takenPicks);
+
 
       // ✅ DETEKSI PICK DARI SERVER (BUKAN LOCAL)
       const me = {{ session('multiplayer_player_id') ?? 'null' }};

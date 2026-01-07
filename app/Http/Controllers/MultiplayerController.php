@@ -145,6 +145,9 @@ class MultiplayerController extends Controller
         ->pluck('pick_order')
         ->values();
 
+        \Log::debug('ROOM STATE', [
+    'taken_picks' => $takenPicks,
+]);
     return response()->json([
         'room' => $room,
         'players' => $players,
@@ -159,6 +162,11 @@ class MultiplayerController extends Controller
 
     public function pickOrder(Request $request)
 {
+    \Log::debug('PICK HIT', [
+        'session_player_id' => session('multiplayer_player_id'),
+        'payload' => $request->all(),
+    ]);
+
     $request->validate([
         'room_code' => 'required',
         'pick' => 'required|integer|min:1|max:4',
@@ -179,6 +187,9 @@ class MultiplayerController extends Controller
     }
 
     if (!$room || $room->status !== 'picking') {
+        \Log::debug('PICK FAIL: invalid room', [
+        'room' => $room,
+    ]);
         DB::rollBack();
         return response()->json(['error' => 'Invalid room state'], 409);
     }
@@ -188,6 +199,11 @@ class MultiplayerController extends Controller
         ->where('id', $playerId)
         ->whereNotNull('pick_order')
         ->exists();
+
+        \Log::debug('PICK SAVED', [
+    'player_id' => $playerId,
+    'pick' => $request->pick,
+]);
 
     if ($alreadyPicked) {
         DB::rollBack();
@@ -201,6 +217,9 @@ class MultiplayerController extends Controller
         ->exists();
 
     if ($pickTaken) {
+        \Log::debug('PICK FAIL: pick taken', [
+        'pick' => $request->pick,
+    ]);
         DB::rollBack();
         return response()->json(['error' => 'Pick already taken'], 409);
     }

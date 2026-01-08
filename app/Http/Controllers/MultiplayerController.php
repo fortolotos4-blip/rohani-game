@@ -17,11 +17,6 @@ class MultiplayerController extends Controller
         return strtolower(preg_replace('/[^a-z0-9]/', '', $value));
     }
 
-    private function currentPlayerId(): ?int
-{
-    return session('multiplayer_player_id');
-}
-
     /* =========================================================
      * ROOM
      * =======================================================*/
@@ -353,10 +348,11 @@ class MultiplayerController extends Controller
         'answer'    => 'required|string',
     ]);
 
-    $playerId = $this->currentPlayerId();
+    $playerId = (int) $request->player_id;
     if (!$playerId) {
         return response()->json(['error' => 'Invalid player'], 403);
     }
+
 
     DB::beginTransaction();
 
@@ -458,10 +454,11 @@ class MultiplayerController extends Controller
         'sticker'   => 'required|string|max:20',
     ]);
 
-    $playerId = $this->currentPlayerId();
+    $playerId = (int) $request->player_id;
     if (!$playerId) {
         return response()->json(['error' => 'Invalid player'], 403);
     }
+
 
     $last = DB::table('multiplayer_stickers')
         ->where('player_id', $playerId)

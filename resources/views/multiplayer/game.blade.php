@@ -9,13 +9,22 @@
   class="relative max-w-6xl mx-auto p-4 overflow-hidden"
 >
 
-<div class="fixed bottom-4 left-1/2 -translate-x-1/2 flex gap-2">
+<div class="fixed bottom-20 right-4 space-y-2 w-48 pointer-events-none">
   <template x-for="s in stickersLive" :key="s.id">
-    <div class="px-3 py-1 bg-white rounded shadow text-lg">
+    <div
+      class="bg-white rounded-2xl shadow px-3 py-2 text-lg flex items-center gap-2"
+      x-transition
+    >
+      <span class="font-semibold text-xs text-gray-500">
+        <template x-if="players.find(p => p.id === s.player_id)">
+          <span x-text="players.find(p => p.id === s.player_id).player_name"></span>
+        </template>
+      </span>
       <span x-text="s.sticker"></span>
     </div>
   </template>
 </div>
+
 
   <!-- GAME OVER -->
   <div
@@ -190,6 +199,12 @@ function multiplayerGame(roomCode){
 },
 
    init() {
+  if (!localStorage.getItem('mp_player_id')) {
+      localStorage.setItem(
+        'mp_player_id',
+        {{ session('multiplayer_player_id') ?? 0 }}
+      );
+    }
 
   this.fetchState();
 
@@ -268,7 +283,8 @@ function multiplayerGame(roomCode){
     },
     body: JSON.stringify({
       room_code: this.roomCode,
-      answer: this.answer
+      answer: this.answer,
+      player_id: Number(localStorage.getItem('mp_player_id'))
     })
   })
   .then(r => r.json())
@@ -294,7 +310,8 @@ function multiplayerGame(roomCode){
     },
     body: JSON.stringify({
       room_code: this.roomCode,
-      sticker: s
+      sticker: s,
+      player_id: Number(localStorage.getItem('mp_player_id'))
     })
   }).then(() => {
     this.fetchState();

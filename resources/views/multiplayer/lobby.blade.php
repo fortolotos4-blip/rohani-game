@@ -54,22 +54,13 @@ function multiplayerLobby(roomCode){
 
     init(){
       this.fetchLobby();
-      this.pollId = setInterval(() => {
-        this.fetchLobby();
-      }, 5000);
+      this.pollId = setInterval(() => this.fetchLobby(), 3000);
     },
 
     fetchLobby(){
-      if (!this.room || !this.room.code) return;
-
-      fetch(`/api/multiplayer/lobby/${this.room.code}`)
-        .then(r => {
-          if (!r.ok) throw new Error(`HTTP ${r.status}`);
-          return r.json();
-        })
+      fetch(`/multiplayer/lobby-state/${this.room.code}`)
+        .then(r => r.json())
         .then(data => {
-          if (!data || !data.room) return;
-
           this.room.status = data.room.status;
           this.room.max_players = data.room.max_players;
           this.players = data.players;
@@ -79,9 +70,6 @@ function multiplayerLobby(roomCode){
             window.location.href =
               `/multiplayer/game/${this.room.code}`;
           }
-        })
-        .catch(err => {
-          console.warn('fetchLobby failed:', err.message);
         });
     },
 
@@ -90,11 +78,9 @@ function multiplayerLobby(roomCode){
     },
 
     get statusText(){
-      switch(this.room.status){
-        case 'waiting': return 'Menunggu pemain lain…';
-        case 'playing': return 'Game dimulai…';
-        default: return '';
-      }
+      return this.room.status === 'waiting'
+        ? 'Menunggu pemain lain…'
+        : 'Game dimulai…';
     }
   }
 }

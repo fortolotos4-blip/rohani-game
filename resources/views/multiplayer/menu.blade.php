@@ -85,7 +85,7 @@ function createRoomForm(){
     max_players: 2,
 
     submit(){
-      fetch('/api/multiplayer/create', {
+      fetch('/multiplayer/create', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -117,7 +117,7 @@ function joinRoomForm(){
       if (this.loading) return;
       this.loading = true;
 
-      fetch('/api/multiplayer/join', {
+      fetch('/multiplayer/join', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

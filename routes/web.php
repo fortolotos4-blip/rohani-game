@@ -98,25 +98,28 @@ Route::prefix('tts/room')->group(function () {
 
 Route::prefix('multiplayer')->group(function () {
 
-    // ===== UI =====
-    Route::get('/menu', function () {
-        return view('multiplayer.menu');
-    })->name('multiplayer.menu');
+    // UI
+    Route::get('/menu', fn () => view('multiplayer.menu'))
+        ->name('multiplayer.menu');
 
-    Route::get('/lobby/{roomCode}', function ($roomCode) {
-        return view('multiplayer.lobby', compact('roomCode'));
-    })->name('multiplayer.lobby');
+    Route::get('/lobby/{roomCode}', fn ($roomCode) =>
+        view('multiplayer.lobby', compact('roomCode'))
+    )->name('multiplayer.lobby');
 
-    Route::get('/game/{roomCode}', function ($roomCode) {
-        return view('multiplayer.game', compact('roomCode'));
-    })->name('multiplayer.game');
+    Route::get('/game/{roomCode}', fn ($roomCode) =>
+        view('multiplayer.game', compact('roomCode'))
+    )->name('multiplayer.game');
 
-    // ===== POLLING =====
-    Route::get('/game-state/{code}', [MultiplayerController::class, 'gameState']);
+    // ACTION
+    Route::post('/create', [MultiplayerController::class, 'createRoom']);
+    Route::post('/join',   [MultiplayerController::class, 'joinRoom']);
 
-    // ===== ACTION =====
+    // POLLING
+    Route::get('/lobby-state/{code}', [MultiplayerController::class, 'roomState']);
+    Route::get('/game-state/{code}',  [MultiplayerController::class, 'gameState']);
+
+    // GAME ACTION
     Route::post('/answer',  [MultiplayerController::class, 'submitAnswer']);
     Route::post('/sticker', [MultiplayerController::class, 'sendSticker']);
 });
-
 

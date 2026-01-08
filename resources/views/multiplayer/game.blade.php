@@ -9,46 +9,33 @@
 >
 
   <!-- PLAYER POSITIONS -->
-<div class="relative h-[520px]">
+  <div class="relative h-[520px]">
 
-  <template x-for="(p, i) in players" :key="p.id">
-    <div
-      class="player-card relative"
-      :class="[
-        p.id === currentTurnId ? 'active-turn' : '',
-        positionClass(i),
-        colorClass(p.color)
-      ]"
-    >
-
-      <!-- ISI CARD -->
-      <div class="flex justify-between items-center">
-
-        <!-- NAMA & SKOR -->
-        <div>
-          <div class="font-bold text-sm" x-text="p.player_name"></div>
-          <div class="text-xs">
-            Skor: <span x-text="p.score"></span>
+    <template x-for="(p, i) in players" :key="p.id">
+      <div
+        class="player-card relative"
+        :class="[
+          p.id === currentTurnId ? 'active-turn' : '',
+          positionClass(i),
+          colorClass(p.color)
+        ]"
+      >
+        <div class="flex justify-between items-center">
+          <div>
+            <div class="font-bold text-sm" x-text="p.player_name"></div>
+            <div class="text-xs">Skor: <span x-text="p.score"></span></div>
           </div>
+
+          <!-- STICKER DI DALAM CARD -->
+          <template x-if="playerSticker(p.id)">
+            <div class="w-8 h-8 rounded-full bg-gray-100
+                        flex items-center justify-center text-lg">
+              <span x-text="playerSticker(p.id)"></span>
+            </div>
+          </template>
         </div>
-
-        <!-- STICKER (DI DALAM KOTAK MERAH) -->
-        <template x-if="playerSticker(p.id)">
-          <div
-            class="inline-flex items-center justify-center
-                   w-8 h-8 rounded-full bg-gray-100 text-lg"
-          >
-            <span x-text="playerSticker(p.id)"></span>
-          </div>
-        </template>
-
       </div>
-
-    </div>
-  </template>
-
-</div>
-
+    </template>
 
     <!-- CENTER GAME -->
     <div class="absolute inset-0 flex items-center justify-center pointer-events-none">
@@ -70,14 +57,14 @@
         <!-- ANSWER SLOTS -->
         <div class="flex justify-center gap-1 mb-3">
           <template x-for="i in answerSlots" :key="i">
-            <div class="w-9 h-9 border rounded flex items-center justify-center font-bold bg-gray-100">
+            <div class="w-9 h-9 border rounded flex items-center justify-center bg-gray-100 font-bold">
               ?
             </div>
           </template>
         </div>
 
         <!-- INPUT -->
-        <div class="flex gap-2 flex-col sm:flex-row">
+        <div class="flex gap-2">
           <input
             x-model="answer"
             :disabled="!isMyTurn || submitting"
@@ -87,41 +74,58 @@
           <button
             @click="submit"
             :disabled="!isMyTurn || submitting"
-            class="w-full sm:w-auto border border-indigo-600
-         text-indigo-600 font-semibold rounded px-4 py-2">
+            class="border border-indigo-600 text-indigo-600
+                   font-semibold rounded px-4 py-2
+                   hover:bg-indigo-50 transition">
             Kirim
           </button>
         </div>
 
+        <!-- FEEDBACK BENAR / SALAH -->
+        <template x-if="answerResult">
+          <div
+            class="mt-3 text-center font-bold text-sm animate-pulse"
+            :class="answerResult === 'correct'
+              ? 'text-green-600'
+              : 'text-red-600'"
+            x-text="answerResult === 'correct'
+              ? '✅ Jawaban Benar!'
+              : '❌ Jawaban Salah!'">
+          </div>
+        </template>
+
       </div>
     </div>
-  </div>
 
-  <!-- STICKERS -->
-  <div class="mt-4 text-center">
-    <div class="flex justify-center gap-2">
+    <!-- STICKER BAR (AREA MERAH – BAWAH GAME) -->
+    <div class="absolute bottom-6 left-1/2 -translate-x-1/2
+                bg-white rounded-xl shadow px-4 py-2
+                flex gap-3 z-10">
+
       <template x-for="s in stickers" :key="s.id">
-      <button
-        @click="sendSticker(s)"
-        :disabled="stickerCooldown"
-        class="px-3 py-1 border rounded bg-gray-100 disabled:opacity-40"
-      >
-        <span x-text="s.emoji"></span>
-      </button>
-    </template>
+        <button
+          @click="sendSticker(s)"
+          :disabled="stickerCooldown"
+          class="text-2xl transition transform
+                 hover:scale-125 active:scale-95
+                 disabled:opacity-40">
+          <span x-text="s.emoji"></span>
+        </button>
+      </template>
 
     </div>
-  </div>
 
+  </div>
 </div>
+
 <!-- GAME FINISHED POPUP -->
 <template x-if="roomStatus === 'finished'">
   <div class="fixed inset-0 bg-black/60 flex items-center justify-center z-50">
     <div class="bg-white rounded-xl p-6 w-80 text-center">
       <div class="text-3xl mb-2">🏁</div>
-      <h2 class="font-bold text-lg mb-2">Game Berakhir</h2>
+      <h2 class="font-bold text-lg mb-3">Game Berakhir</h2>
 
-      <div class="text-sm mb-4">
+      <div class="text-sm space-y-1 mb-4">
         <template x-for="p in players" :key="p.id">
           <div class="flex justify-between">
             <span x-text="p.player_name"></span>
@@ -131,14 +135,12 @@
       </div>
 
       <a href="/dashboard"
-         class="block mt-3 bg-indigo-600 text-white rounded py-2">
+         class="block bg-indigo-600 text-white rounded py-2">
         Kembali ke Dashboard
       </a>
     </div>
   </div>
 </template>
-
-
 <script>
 function multiplayerGame(roomCode){
   return {
@@ -146,141 +148,109 @@ function multiplayerGame(roomCode){
 
     roomStatus: null,
 
-
     players: [],
     currentTurnId: null,
-    question: null,
+    myPlayerId: null,
 
+    question: null,
     sessionLeft: 0,
     turnLeft: 0,
 
     answer: '',
     submitting: false,
+    answerResult: null,
 
     stickers: [
-  { id: 1, emoji: '👍' },
-  { id: 2, emoji: '😂' },
-  { id: 3, emoji: '🔥' },
-  { id: 4, emoji: '😱' },
-  { id: 5, emoji: '👏' },
-],
+      { id: 1, emoji: '👍' },
+      { id: 2, emoji: '😂' },
+      { id: 3, emoji: '🔥' },
+      { id: 4, emoji: '😱' },
+      { id: 5, emoji: '👏' },
+    ],
 
     stickersLive: [],
     stickerCooldown: false,
 
-    myPlayerId: null,
-
-
     init(){
       this.fetchState();
       setInterval(() => {
-      if (!this.submitting) this.fetchState();
-    }, 3000);
+        this.fetchState();
+      }, 3000);
     },
 
     fetchState(){
       fetch(`/multiplayer/game-state/${this.roomCode}`)
-      .then(r => {
-        if (!r.ok) throw new Error('Network error');
-        return r.json();
-      })
-      .then(d => {
-        this.players = d.players ?? [];
-            this.currentTurnId = d.current_turn_player_id;
-            this.myPlayerId = d.my_player_id;
-
-            this.question = d.question;
-            this.turnLeft = d.turn_left ?? 0;
-            this.sessionLeft = d.session_left ?? 0;
-
-            this.roomStatus = d.room_status;
-
-            // STICKER
-            this.stickersLive = d.stickers ?? [];
-
-            // auto-clear setelah 2 detik (client only)
-            clearTimeout(this._stickerTimer);
-            this._stickerTimer = setTimeout(() => {
-              this.stickersLive = [];
-            }, 2000);
-
-      })
-      .catch(() => {
-        console.warn('Polling failed');
-      });
+        .then(r => r.json())
+        .then(d => {
+          this.players = d.players ?? [];
+          this.currentTurnId = d.current_turn_player_id;
+          this.myPlayerId = d.my_player_id;
+          this.question = d.question;
+          this.turnLeft = d.turn_left ?? 0;
+          this.sessionLeft = d.session_left ?? 0;
+          this.roomStatus = d.room_status;
+          this.stickersLive = d.stickers ?? [];
+        });
     },
 
     submit(){
-    if (!this.isMyTurn || this.submitting || !this.answer.trim()) return;
+      if (!this.isMyTurn || !this.answer.trim()) return;
 
-    this.submitting = true;
+      this.submitting = true;
+      this.answerResult = null;
 
-    fetch('/multiplayer/answer', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-CSRF-TOKEN': '{{ csrf_token() }}'
-      },
-      body: JSON.stringify({
-        room_code: this.roomCode,
-        answer: this.answer
+      fetch('/multiplayer/answer', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRF-TOKEN': '{{ csrf_token() }}'
+        },
+        body: JSON.stringify({
+          room_code: this.roomCode,
+          answer: this.answer
+        })
       })
-    })
-    .then(r => {
-      if (!r.ok) throw new Error('Submit failed');
-      return r.json();
-    })
-    .then(res => {
-      if (res.correct) {
-        console.log('Jawaban benar');
-      } else {
-        console.log('Jawaban salah');
-      }
-      this.answer = '';
-      this.fetchState(); // skor & turn update DI SINI
-    })
-    .catch(err => {
-      console.warn(err.message);
-    })
-    .finally(() => this.submitting = false);
-  },
-
-      sendSticker(sticker){
-  if (this.stickerCooldown) return;
-
-  this.stickerCooldown = true;
-
-  fetch('/multiplayer/sticker', {
-    method: 'POST',
-    credentials: 'same-origin',
-    headers: {
-      'Content-Type': 'application/json',
-      'X-CSRF-TOKEN': '{{ csrf_token() }}'
+      .then(r => r.json())
+      .then(res => {
+        this.answerResult = res.correct ? 'correct' : 'wrong';
+        this.answer = '';
+        setTimeout(() => this.answerResult = null, 2000);
+        this.fetchState();
+      })
+      .finally(() => this.submitting = false);
     },
-    body: JSON.stringify({
-      room_code: this.roomCode,
-      sticker_id: sticker.id,     // 🔥 IDENTITAS
-      emoji: sticker.emoji        // 🔥 DATA
-    })
-  })
-  .then(r => {
-    if (!r.ok) throw new Error('Sticker failed');
-    return r.json();
-  })
-  .then(() => {
-    this.fetchState();
-  })
-  .catch(err => console.warn(err.message));
 
-  setTimeout(() => this.stickerCooldown = false, 5000);
-},
-playerSticker(pid) {
-  const s = this.stickersLive.find(x => x.player_id === pid);
-  return s ? s.emoji : null;
-},
+    sendSticker(sticker){
+      if (this.stickerCooldown) return;
+
+      this.stickerCooldown = true;
+
+      fetch('/multiplayer/sticker', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRF-TOKEN': '{{ csrf_token() }}'
+        },
+        body: JSON.stringify({
+          room_code: this.roomCode,
+          sticker_id: sticker.id,
+          emoji: sticker.emoji
+        })
+      }).then(() => {
+        this.fetchState();
+      });
+
+      setTimeout(() => this.stickerCooldown = false, 5000);
+    },
+
+    playerSticker(pid){
+      const s = this.stickersLive.find(x => x.player_id === pid);
+      return s ? s.emoji : null;
+    },
+
     get isMyTurn(){
-    return this.myPlayerId === this.currentTurnId;
-  },
+      return this.myPlayerId === this.currentTurnId;
+    },
 
     get answerSlots(){
       return this.question ? this.question.answer_length : 0;
@@ -288,11 +258,6 @@ playerSticker(pid) {
 
     get imageSrc(){
       return this.question?.image ?? '';
-    },
-
-    playerName(pid){
-      const p = this.players.find(x => x.id === pid);
-      return p ? p.player_name : '';
     },
 
     positionClass(i){
@@ -310,32 +275,4 @@ playerSticker(pid) {
   }
 }
 </script>
-
-<style>
-.player-card{
-  position:absolute;
-  width:140px;
-  padding:8px;
-  border-radius:10px;
-  border:2px solid;
-  font-size:12px;
-}
-.top-left{top:0;left:0}
-.top-right{top:0;right:0}
-.bottom-left{bottom:0;left:0}
-.bottom-right{bottom:0;right:0}
-.active-turn{
-  box-shadow:0 0 0 3px rgba(99,102,241,.4);
-}
-.player-sticker{
-  position:absolute;
-  top:-18px;
-  left:50%;
-  transform:translateX(-50%);
-  font-size:20px;
-  line-height:1;
-  pointer-events:none;
-}
-
-</style>
 @endsection

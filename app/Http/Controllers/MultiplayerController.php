@@ -17,11 +17,6 @@ class MultiplayerController extends Controller
         return strtolower(preg_replace('/[^a-z0-9]/', '', $value));
     }
 
-    private function currentPlayerId(): ?int
-    {
-        return session('multiplayer_player_id');
-    }
-
     /* =========================================================
      * ROOM
      * =======================================================*/
@@ -352,7 +347,14 @@ class MultiplayerController extends Controller
         'answer' => 'required|string',
     ]);
 
-    $playerId = $this->currentPlayerId();
+    $playerId = (int) $request->player_id;
+
+    $request->validate([
+    'room_code' => 'required',
+    'answer'    => 'required|string',
+    'player_id' => 'required|integer',
+    ]);
+
 
     DB::beginTransaction();
 
@@ -460,7 +462,14 @@ class MultiplayerController extends Controller
             'sticker' => 'required|string|max:20',
         ]);
 
-        $playerId = $this->currentPlayerId();
+        $playerId = (int) $request->player_id;
+
+        $request->validate([
+        'room_code' => 'required',
+        'answer'    => 'required|string',
+        'player_id' => 'required|integer',
+        ]);
+
 
         $last = DB::table('multiplayer_stickers')
             ->where('player_id', $playerId)
@@ -472,20 +481,24 @@ class MultiplayerController extends Controller
         }
 
         $room = DB::table('multiplayer_rooms')
-    ->where('room_code', $request->room_code)
-    ->first();
+        ->where('room_code', $request->room_code)
+        ->first();
 
-    if (!$room) {
-    return response()->json(['error' => 'Room not found'], 404);
-}
+        if (!$room) {
+        return response()->json(['error' => 'Room not found'], 404);
+        }
 
-DB::table('multiplayer_stickers')->insert([
-    'room_id'   => $room->id,
-    'player_id' => $playerId,
-    'emoji'     => $request->sticker,
-    'created_at'=> now(),
-]);
+        if (!$playerId) {
+            return response()->json(['error' => 'Invalid player'], 403);
+        }
 
+
+        DB::table('multiplayer_stickers')->insert([
+            'room_id'   => $room->id,
+            'player_id' => $playerId,
+            'emoji'     => $request->sticker,
+            'created_at'=> now(),
+        ]);
 
         return response()->json(['success' => true]);
     }

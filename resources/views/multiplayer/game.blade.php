@@ -178,32 +178,18 @@ function multiplayerGame(roomCode){
   return this.question ? this.question.answer_length : 0;
 },
 
-    init() {
+   init() {
   if (!localStorage.getItem('mp_player_id')) {
     localStorage.setItem(
       'mp_player_id',
-      {{ session('multiplayer_player_id') ? session('multiplayer_player_id') : '0' }}
+      {{ session('multiplayer_player_id') ?? 0 }}
     );
   }
 
   this.fetchState();
 
-  // 🔁 polling realtime (1 detik)
+  // 🔁 polling 1 detik → cukup & ringan
   this.pollId = setInterval(() => this.fetchState(), 1000);
-
-  // ⏳ game timer lokal
-  this.sessionTicker = setInterval(() => {
-    if (this.sessionLeft > 0) this.sessionLeft--;
-  }, 1000);
-
-  // 🎯 turn timer + auto refresh
-  this.turnTicker = setInterval(() => {
-    if (this.turnLeft > 0) {
-      this.turnLeft--;
-    } else {
-      this.fetchState(); // ⬅️ paksa pindah giliran
-    }
-  }, 1000);
 },
 
    fetchState() {
@@ -258,8 +244,6 @@ function multiplayerGame(roomCode){
       if (this.sessionLeft <= 0 || d.room_status === 'finished') {
         this.gameOver = true;
         clearInterval(this.pollId);
-        clearInterval(this.sessionTicker);
-        clearInterval(this.turnTicker);
       }
     })
     .catch(() => {});
@@ -277,9 +261,12 @@ function multiplayerGame(roomCode){
       'X-CSRF-TOKEN': '{{ csrf_token() }}'
     },
     body: JSON.stringify({
-      room_code: this.roomCode,
-      answer: this.answer
-    })
+    room_code: this.roomCode,
+    answer: this.answer,
+    player_id: Number(localStorage.getItem('mp_player_id'))
+  })
+
+
   })
   .then(() => {
     this.answer = '';
@@ -302,9 +289,11 @@ function multiplayerGame(roomCode){
       'X-CSRF-TOKEN': '{{ csrf_token() }}'
     },
     body: JSON.stringify({
-      room_code: this.roomCode,
-      sticker: s
-    })
+    room_code: this.roomCode,
+    sticker: s,
+    player_id: Number(localStorage.getItem('mp_player_id'))
+  })
+
   }).then(() => {
     this.fetchState(); // ⬅️ WAJIB agar pemain lain lihat
   });

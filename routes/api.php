@@ -18,17 +18,4 @@ Route::middleware('auth:api')->get('/user', function (Request $request) {
     return $request->user();
 });
 
-Route::prefix('multiplayer')->group(function () {
-
-    Route::post('/create', [MultiplayerController::class, 'createRoom']);
-    Route::post('/join',   [MultiplayerController::class, 'joinRoom']);
-    Route::get('/lobby/{code}', [MultiplayerController::class, 'roomState']);
-
-    // ❌ TANPA THROTTLE
-    Route::get('/game-state/{code}', [MultiplayerController::class, 'gameState']);
-    Route::post('/answer',            [MultiplayerController::class, 'submitAnswer']);
-    Route::post('/sticker',           [MultiplayerController::class, 'sendSticker']);
-});
-
-
 

@@ -217,60 +217,17 @@ function multiplayerGame(roomCode){
    fetchState() {
   if (this.gameOver) return;
 
-fetch(`/multiplayer/game-state/${this.roomCode}`, {
-  method: 'POST',
-  headers: { 'X-CSRF-TOKEN': '{{ csrf_token() }}' }
-})
-    .then(r => r.json())
-    .then(d => {
-
-      // ⛔ game belum mulai → jangan render apa pun
-      if (d.room_status !== 'playing') {
-        this.players = d.players ?? [];
-        return;
-      }
-
-      // 🎮 core state
-      this.players = d.players;
-      this.currentTurnId = d.current_turn_player_id;
-      this.question = d.question;
-
-      // 🔄 sync timer dari server (snapshot)
-      if (typeof d.session_left === 'number') {
-        this.sessionLeft = d.session_left;
-      }
-
-      if (typeof d.turn_left === 'number') {
-        this.turnLeft = d.turn_left;
-      }
-
-      // ✅ VALIDATION
-      if (d.last_validation) {
-        this.lastValidation = d.last_validation;
-        setTimeout(() => this.lastValidation = null, 1500);
-      }
-
-      // 🎉 STICKER realtime
-      const incoming = d.stickers ?? [];
-      const fresh = incoming.filter(s => s.id > this.lastStickerId);
-
-      fresh.forEach(s => {
-        this.stickersLive.push(s);
-        setTimeout(() => {
-          this.stickersLive = this.stickersLive.filter(x => x.id !== s.id);
-        }, 3000);
-      });
-
-      if (fresh.length) {
-        this.lastStickerId = fresh.at(-1).id;
-      }
-
-      // 🏁 GAME OVER
-      if (this.sessionLeft <= 0 || d.room_status === 'finished') {
-        this.gameOver = true;
-        clearInterval(this.pollId);
-      }
-    })
+fetch(`/multiplayer/game-state/${this.roomCode}`)
+  .then(r => r.json())
+  .then(d => {
+    this.players = d.players;
+    this.currentTurnId = d.current_turn_player_id;
+    this.isMyTurn = d.is_my_turn;
+    this.question = d.question;
+    this.turnLeft = d.turn_left;
+    this.sessionLeft = d.session_left;
+    this.stickersLive = d.stickers ?? [];
+  })
     .catch(() => {});
 },
 
@@ -305,7 +262,7 @@ fetch(`/multiplayer/game-state/${this.roomCode}`, {
 
   this.stickerCooldown = true;
 
-  fetch('/multiplayer/sticker', {
+ fetch('/multiplayer/sticker', {
   method: 'POST',
   headers: {
     'Content-Type': 'application/json',

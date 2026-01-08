@@ -154,47 +154,70 @@ function multiplayerGame(roomCode){
     },
 
     submit(){
-      if (!this.isMyTurn || this.submitting || !this.answer.trim()) return;
+    if (!this.isMyTurn || this.submitting || !this.answer.trim()) return;
 
-      this.submitting = true;
+    this.submitting = true;
 
-      fetch('/multiplayer/answer', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-CSRF-TOKEN': '{{ csrf_token() }}'
-        },
-        body: JSON.stringify({
-          room_code: this.roomCode,
-          answer: this.answer
-        })
+    fetch('/multiplayer/answer', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRF-TOKEN': '{{ csrf_token() }}'
+      },
+      body: JSON.stringify({
+        room_code: this.roomCode,
+        answer: this.answer
       })
-      .then(() => {
-        this.answer = '';
-        this.fetchState();
+    })
+    .then(r => {
+      if (!r.ok) throw new Error('Submit failed');
+      return r.json();
+    })
+    .then(res => {
+      if (res.correct) {
+        console.log('Jawaban benar');
+      } else {
+        console.log('Jawaban salah');
+      }
+      this.answer = '';
+      this.fetchState(); // skor & turn update DI SINI
+    })
+    .catch(err => {
+      console.warn(err.message);
+    })
+    .finally(() => this.submitting = false);
+  },
+
+      sendSticker(s){
+    if (this.stickerCooldown) return;
+
+    this.stickerCooldown = true;
+
+    fetch('/multiplayer/sticker', {
+      method: 'POST',
+      credentials: 'same-origin', // 🔥 INI WAJIB
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRF-TOKEN': '{{ csrf_token() }}'
+      },
+      body: JSON.stringify({
+        room_code: this.roomCode,
+        sticker: s
       })
-      .finally(() => this.submitting = false);
-    },
+    })
+    .then(r => {
+      if (!r.ok) throw new Error('Sticker failed');
+      return r.json();
+    })
+    .then(() => {
+      this.fetchState(); // tampilkan bubble
+    })
+    .catch(err => {
+      console.warn(err.message);
+    });
 
-    sendSticker(s){
-      if (this.stickerCooldown) return;
-
-      this.stickerCooldown = true;
-
-      fetch('/multiplayer/sticker', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-CSRF-TOKEN': '{{ csrf_token() }}'
-        },
-        body: JSON.stringify({
-          room_code: this.roomCode,
-          sticker: s
-        })
-      });
-
-      setTimeout(() => this.stickerCooldown = false, 5000);
-    },
+    setTimeout(() => this.stickerCooldown = false, 5000);
+  },
 
     get isMyTurn(){
     return this.myPlayerId === this.currentTurnId;

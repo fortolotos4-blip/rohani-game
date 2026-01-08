@@ -318,7 +318,7 @@ function multiplayerGame(roomCode){
     get isMyTurn() {
   const me = Number(localStorage.getItem('mp_player_id'));
   return me && this.currentTurnId === me;
-}
+},
 
     get validationText(){
   if(!this.lastValidation) return '';

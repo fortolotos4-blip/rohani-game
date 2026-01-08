@@ -217,7 +217,10 @@ function multiplayerGame(roomCode){
    fetchState() {
   if (this.gameOver) return;
 
-  fetch(`/api/multiplayer/game-state/${this.roomCode}`)
+fetch(`/multiplayer/game-state/${this.roomCode}`, {
+  method: 'POST',
+  headers: { 'X-CSRF-TOKEN': '{{ csrf_token() }}' }
+})
     .then(r => r.json())
     .then(d => {
 
@@ -276,18 +279,17 @@ function multiplayerGame(roomCode){
 
   this.submitting = true;
 
-  fetch('/api/multiplayer/answer', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'X-CSRF-TOKEN': '{{ csrf_token() }}'
-    },
-    body: JSON.stringify({
-      room_code: this.roomCode,
-      answer: this.answer,
-      player_id: Number(localStorage.getItem('mp_player_id'))
-    })
+  fetch('/multiplayer/answer', {
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json',
+    'X-CSRF-TOKEN': '{{ csrf_token() }}'
+  },
+  body: JSON.stringify({
+    room_code: this.roomCode,
+    answer: this.answer
   })
+})
   .then(r => r.json())
   .then(() => {
     this.answer = '';
@@ -303,18 +305,18 @@ function multiplayerGame(roomCode){
 
   this.stickerCooldown = true;
 
-  fetch('/api/multiplayer/sticker', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'X-CSRF-TOKEN': '{{ csrf_token() }}'
-    },
-    body: JSON.stringify({
-      room_code: this.roomCode,
-      sticker: s,
-      player_id: Number(localStorage.getItem('mp_player_id'))
-    })
-  }).then(() => {
+  fetch('/multiplayer/sticker', {
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json',
+    'X-CSRF-TOKEN': '{{ csrf_token() }}'
+  },
+  body: JSON.stringify({
+    room_code: this.roomCode,
+    sticker: s
+  })
+})
+  .then(() => {
     this.fetchState();
   });
 

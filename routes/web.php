@@ -97,21 +97,15 @@ Route::prefix('tts/room')->group(function () {
 });
 
 Route::prefix('multiplayer')
-    ->middleware([])
+    ->middleware(['web'])
     ->group(function () {
 
-    Route::get('/menu', fn () => view('multiplayer.menu'))
-        ->name('multiplayer.menu');
-
-    Route::get('/lobby/{roomCode}', function ($roomCode) {
-        return view('multiplayer.lobby', compact('roomCode'));
-    });
-
-    Route::get('/game/{roomCode}', function ($roomCode) {
-        return view('multiplayer.game', compact('roomCode'));
-    });
+    Route::post('/game-state/{code}', [MultiplayerController::class, 'gameState']);
+    Route::post('/answer', [MultiplayerController::class, 'submitAnswer']);
+    Route::post('/sticker', [MultiplayerController::class, 'sendSticker']);
 
 });
+
 
 
 

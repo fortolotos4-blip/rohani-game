@@ -42,16 +42,6 @@
     </div>
   </div>
 
-  <div class="flex justify-center gap-1 mb-2">
-  <template x-for="p in players" :key="p.id">
-    <div
-      class="w-10 h-2 rounded"
-      :class="colorClass(p.color)"
-      x-text="p.score"
-    ></div>
-  </template>
-</div>
-
 <template x-for="s in stickersLive" :key="s.id">
   <div
     class="absolute"

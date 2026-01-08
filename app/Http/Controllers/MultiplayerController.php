@@ -173,10 +173,19 @@ class MultiplayerController extends Controller
         return response()->json(['error' => 'Room not found'], 404);
     }
 
+    if ($room->status !== 'playing') {
+    return response()->json([
+        'room_status' => $room->status,
+        'players'     => DB::table('multiplayer_room_players')
+                            ->where('room_id', $room->id)
+                            ->orderBy('turn_order')
+                            ->get(),
+    ]);
+}
     /*
-    |----------------------------------------------------------------------
+    |--------------------------------------------------------------------------
     | GAME OVER CHECK
-    |----------------------------------------------------------------------
+    |--------------------------------------------------------------------------
     */
     if (
         $room->status === 'playing' &&
@@ -191,9 +200,9 @@ class MultiplayerController extends Controller
     }
 
     /*
-    |----------------------------------------------------------------------
+    |--------------------------------------------------------------------------
     | AUTO SKIP TURN
-    |----------------------------------------------------------------------
+    |--------------------------------------------------------------------------
     */
     if (
         $room->status === 'playing' &&
@@ -228,8 +237,8 @@ class MultiplayerController extends Controller
                 ->where('id', $room->id)
                 ->update([
                     'current_turn_player_id' => $nextPlayer->id,
-                    'turn_started_at' => now(),
-                    'turn_locked' => false,
+                    'turn_started_at'        => now(),
+                    'turn_locked'            => false,
                 ]);
 
             $room = DB::table('multiplayer_rooms')
@@ -239,9 +248,9 @@ class MultiplayerController extends Controller
     }
 
     /*
-    |----------------------------------------------------------------------
+    |--------------------------------------------------------------------------
     | DATA UNTUK CLIENT
-    |----------------------------------------------------------------------
+    |--------------------------------------------------------------------------
     */
     $players = DB::table('multiplayer_room_players')
         ->where('room_id', $room->id)
@@ -249,47 +258,51 @@ class MultiplayerController extends Controller
         ->get();
 
     $stickers = DB::table('multiplayer_stickers')
-    ->where('room_id', $room->id)
-    ->orderBy('id', 'desc')
-    ->limit(5)
-    ->get()
-    ->reverse()
-    ->values();
-
-
-    $question = Question::orderBy('id')
-    ->skip($room->current_question_index)
-    ->first();
-
+        ->where('room_id', $room->id)
+        ->orderBy('id', 'desc')
+        ->limit(5)
+        ->get()
+        ->reverse()
+        ->values();
 
     /*
-|--------------------------------------------------------------------------
-| JIKA SOAL HABIS → AKHIRI GAME
-|--------------------------------------------------------------------------
-*/
-if (!$question) {
-    DB::table('multiplayer_rooms')
-        ->where('id', $room->id)
-        ->update(['status' => 'finished']);
+    |--------------------------------------------------------------------------
+    | 🔒 AMBIL SOAL MULTIPLAYER SAJA (HANYA images/*)
+    |--------------------------------------------------------------------------
+    */
+    $question = Question::where('image_path', 'like', 'images/%')
+        ->orderBy('id')
+        ->skip($room->current_question_index)
+        ->first();
 
-    return response()->json([
-        'room_status' => 'finished',
-        'current_turn_player_id' => null,
-        'turn_left' => 0,
-        'session_left' => 0,
-        'players' => $players,
-        'question' => null,
-        'last_validation' => null,
-        'stickers' => $stickers,
-    ]);
-}
+    /*
+    |--------------------------------------------------------------------------
+    | JIKA SOAL HABIS → AKHIRI GAME
+    |--------------------------------------------------------------------------
+    */
+    if (!$question) {
+        DB::table('multiplayer_rooms')
+            ->where('id', $room->id)
+            ->update(['status' => 'finished']);
+
+        return response()->json([
+            'room_status'            => 'finished',
+            'current_turn_player_id' => null,
+            'turn_left'              => 0,
+            'session_left'           => 0,
+            'players'                => $players,
+            'question'               => null,
+            'last_validation'        => null,
+            'stickers'               => [],
+        ]);
+    }
 
     $lastValidation = $room->last_validation
         ? json_decode($room->last_validation, true)
         : null;
 
     $response = response()->json([
-        'room_status' => $room->status,
+        'room_status'            => $room->status,
         'current_turn_player_id' => $room->current_turn_player_id,
 
         'turn_left' => $room->turn_started_at
@@ -302,19 +315,20 @@ if (!$question) {
 
         'players' => $players,
 
-        // ⬅️ KUNCI UNTUK IMAGE & ANSWER SLOT
-        'question' => $question ? [
-            'id' => $question->id,
-            'image' => $question->image_path,
-            'answer_length' => $question->answer_slots,
-        ] : null,
+        // ✅ PATH AMAN UNTUK FRONTEND
+        'question' => [
+            'id'            => $question->id,
+            'image'         => '/' . ltrim($question->image_path, '/'),
+            'answer_length' => (int) $question->answer_slots,
+        ],
 
         'last_validation' => $lastValidation,
+
         'stickers' => $stickers->map(fn ($s) => [
-        'id'        => $s->id,
-        'player_id' => $s->player_id,
-        'sticker'   => $s->emoji,
-    ]),
+            'id'        => $s->id,
+            'player_id' => $s->player_id,
+            'sticker'   => $s->emoji,
+        ]),
     ]);
 
     if ($room->last_validation) {
@@ -366,7 +380,8 @@ if (!$question) {
         ->where('id', $room->id)
         ->update(['turn_locked' => true]);
 
-    $question = Question::orderBy('id')
+    $question = Question::where('image_path', 'like', 'images/%')
+    ->orderBy('id')
     ->skip($room->current_question_index)
     ->first();
 

@@ -62,32 +62,84 @@ class MultiplayerController extends Controller
      * JOIN ROOM
      * ========================= */
     public function joinRoom(Request $request)
-    {
-        $request->validate([
-            'player_name' => 'required|string|max:30',
-            'room_code'   => 'required|string',
-        ]);
+{
+    $request->validate([
+        'player_name' => 'required|string|max:30',
+        'room_code'   => 'required|string',
+    ]);
 
-        $room = DB::table('multiplayer_rooms')
-            ->where('room_code', $request->room_code)
-            ->first();
+    DB::beginTransaction();
 
-        if (!$room) {
-            return response()->json(['error' => 'Room not found'], 404);
+    $room = DB::table('multiplayer_rooms')
+        ->where('room_code', $request->room_code)
+        ->lockForUpdate()
+        ->first();
+
+    if (!$room) {
+        DB::rollBack();
+        return response()->json(['error' => 'Room not found'], 404);
+    }
+
+    if ($room->status !== 'waiting') {
+        DB::rollBack();
+        return response()->json(['error' => 'Game already started'], 409);
+    }
+
+    $count = DB::table('multiplayer_room_players')
+        ->where('room_id', $room->id)
+        ->count();
+
+    if ($count >= $room->max_players) {
+        DB::rollBack();
+        return response()->json(['error' => 'Room full'], 403);
+    }
+
+    $colors = ['blue', 'red', 'orange', 'green'];
+
+    $playerId = DB::table('multiplayer_room_players')->insertGetId([
+        'room_id'     => $room->id,
+        'player_name' => $request->player_name,
+        'color'       => $colors[$count],
+        'score'       => 0,
+        'joined_at'   => now(),
+    ]);
+
+    session(['multiplayer_player_id' => $playerId]);
+
+    $countAfter = $count + 1;
+
+    // 🚀 JIKA PEMAIN SUDAH PENUH → MULAI GAME
+    if ($countAfter === (int) $room->max_players) {
+
+        $players = DB::table('multiplayer_room_players')
+            ->where('room_id', $room->id)
+            ->pluck('id')
+            ->toArray();
+
+        shuffle($players);
+
+        foreach ($players as $i => $pid) {
+            DB::table('multiplayer_room_players')
+                ->where('id', $pid)
+                ->update(['turn_order' => $i + 1]);
         }
 
-        $playerId = DB::table('multiplayer_room_players')->insertGetId([
-            'room_id' => $room->id,
-            'player_name' => $request->player_name,
-            'color' => 'red',
-            'score' => 0,
-            'joined_at' => now(),
-        ]);
-
-        session(['multiplayer_player_id' => $playerId]);
-
-        return response()->json(['success' => true]);
+        DB::table('multiplayer_rooms')
+            ->where('id', $room->id)
+            ->update([
+                'status'                  => 'playing',
+                'current_turn_player_id'  => $players[0],
+                'game_started_at'         => now(),
+                'turn_started_at'         => now(),
+                'turn_locked'             => false,
+            ]);
     }
+
+    DB::commit();
+
+    return response()->json(['success' => true]);
+}
+
 
     public function lobbyState(string $code)
 {

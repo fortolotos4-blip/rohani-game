@@ -89,6 +89,32 @@ class MultiplayerController extends Controller
         return response()->json(['success' => true]);
     }
 
+    public function lobbyState(string $code)
+{
+    $room = DB::table('multiplayer_rooms')
+        ->where('room_code', $code)
+        ->first();
+
+    if (!$room) {
+        return response()->json(['error' => 'Room not found'], 404);
+    }
+
+    $players = DB::table('multiplayer_room_players')
+        ->where('room_id', $room->id)
+        ->orderBy('joined_at')
+        ->get();
+
+    return response()->json([
+        'room' => [
+            'code'        => $room->room_code,
+            'status'      => $room->status,
+            'max_players' => $room->max_players,
+        ],
+        'players' => $players,
+    ]);
+}
+
+
     /* =========================
      * GAME STATE (POLLING)
      * ========================= */

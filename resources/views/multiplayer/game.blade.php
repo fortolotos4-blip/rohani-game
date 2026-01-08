@@ -207,9 +207,11 @@ function multiplayerGame(roomCode){
     }
 
   this.fetchState();
-
-  // 🔁 polling 1 detik → cukup & ringan
-  this.pollId = setInterval(() => this.fetchState(), 2000);
+  this.pollId = setInterval(() => {
+  if (!this.submitting && !this.stickerCooldown) {
+    this.fetchState();
+  }
+}, 2500);
 },
 
    fetchState() {
@@ -228,7 +230,6 @@ function multiplayerGame(roomCode){
       // 🎮 core state
       this.players = d.players;
       this.currentTurnId = d.current_turn_player_id;
-      this.isMyTurn = d.is_my_turn === true;
       this.question = d.question;
 
       // 🔄 sync timer dari server (snapshot)
@@ -333,6 +334,10 @@ get imageSrc(){
   return this.question?.image ?? '';
 },
 
+get isMyTurn() {
+  const me = Number(localStorage.getItem('mp_player_id'));
+  return me && this.currentTurnId === me;
+},
 
     positionClass(i){
       return ['top-left','top-right','bottom-left','bottom-right'][i] || '';

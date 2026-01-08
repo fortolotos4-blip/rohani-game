@@ -17,6 +17,11 @@ class MultiplayerController extends Controller
         return strtolower(preg_replace('/[^a-z0-9]/', '', $value));
     }
 
+    private function currentPlayerId(): ?int
+{
+    return session('multiplayer_player_id');
+}
+
     /* =========================================================
      * ROOM
      * =======================================================*/
@@ -344,17 +349,13 @@ class MultiplayerController extends Controller
 {
     $request->validate([
         'room_code' => 'required',
-        'answer' => 'required|string',
+        'answer'    => 'required|string',
     ]);
 
-    $playerId = (int) $request->player_id;
-
-    $request->validate([
-    'room_code' => 'required',
-    'answer'    => 'required|string',
-    'player_id' => 'required|integer',
-    ]);
-
+    $playerId = $this->currentPlayerId();
+    if (!$playerId) {
+        return response()->json(['error' => 'Invalid player'], 403);
+    }
 
     DB::beginTransaction();
 
@@ -383,10 +384,9 @@ class MultiplayerController extends Controller
         ->update(['turn_locked' => true]);
 
     $question = Question::where('image_path', 'like', 'images/%')
-    ->orderBy('id')
-    ->skip($room->current_question_index)
-    ->first();
-
+        ->orderBy('id')
+        ->skip($room->current_question_index)
+        ->first();
 
     if (!$question) {
         DB::rollBack();
@@ -402,10 +402,9 @@ class MultiplayerController extends Controller
         ->update([
             'last_validation' => json_encode([
                 'player_id' => $playerId,
-                'correct' => $correct,
-                'answer' => $request->answer,
+                'correct'   => $correct,
+                'answer'    => $request->answer,
             ]),
-            'updated_at' => now(),
         ]);
 
     if ($correct) {
@@ -415,9 +414,7 @@ class MultiplayerController extends Controller
 
         DB::table('multiplayer_rooms')
             ->where('id', $room->id)
-            ->update([
-                'current_question_index' => $room->current_question_index + 1,
-            ]);
+            ->increment('current_question_index');
     }
 
     $currentOrder = DB::table('multiplayer_room_players')
@@ -428,21 +425,18 @@ class MultiplayerController extends Controller
         ->where('room_id', $room->id)
         ->where('turn_order', '>', $currentOrder)
         ->orderBy('turn_order')
-        ->first();
-
-    if (!$nextPlayer) {
-        $nextPlayer = DB::table('multiplayer_room_players')
+        ->first()
+        ?? DB::table('multiplayer_room_players')
             ->where('room_id', $room->id)
             ->orderBy('turn_order')
             ->first();
-    }
 
     DB::table('multiplayer_rooms')
         ->where('id', $room->id)
         ->update([
             'current_turn_player_id' => $nextPlayer->id,
-            'turn_started_at' => now(),
-            'turn_locked' => false,
+            'turn_started_at'        => now(),
+            'turn_locked'            => false,
         ]);
 
     DB::commit();
@@ -451,55 +445,48 @@ class MultiplayerController extends Controller
 }
 
 
+
     /* =========================================================
      * STICKER
      * =======================================================*/
 
     public function sendSticker(Request $request)
-    {
-        $request->validate([
-            'room_code' => 'required',
-            'sticker' => 'required|string|max:20',
-        ]);
-
-        $playerId = (int) $request->player_id;
-
-        $request->validate([
+{
+    $request->validate([
         'room_code' => 'required',
-        'answer'    => 'required|string',
-        'player_id' => 'required|integer',
-        ]);
+        'sticker'   => 'required|string|max:20',
+    ]);
 
+    $playerId = $this->currentPlayerId();
+    if (!$playerId) {
+        return response()->json(['error' => 'Invalid player'], 403);
+    }
 
-        $last = DB::table('multiplayer_stickers')
-            ->where('player_id', $playerId)
-            ->latest()
-            ->first();
+    $last = DB::table('multiplayer_stickers')
+        ->where('player_id', $playerId)
+        ->latest()
+        ->first();
 
-        if ($last && now()->diffInSeconds($last->created_at) < 20) {
-            return response()->json(['error' => 'Cooldown'], 429);
-        }
+    if ($last && now()->diffInSeconds($last->created_at) < 5) {
+        return response()->json(['error' => 'Cooldown'], 429);
+    }
 
-        $room = DB::table('multiplayer_rooms')
+    $room = DB::table('multiplayer_rooms')
         ->where('room_code', $request->room_code)
         ->first();
 
-        if (!$room) {
+    if (!$room) {
         return response()->json(['error' => 'Room not found'], 404);
-        }
-
-        if (!$playerId) {
-            return response()->json(['error' => 'Invalid player'], 403);
-        }
-
-
-        DB::table('multiplayer_stickers')->insert([
-            'room_id'   => $room->id,
-            'player_id' => $playerId,
-            'emoji'     => $request->sticker,
-            'created_at'=> now(),
-        ]);
-
-        return response()->json(['success' => true]);
     }
+
+    DB::table('multiplayer_stickers')->insert([
+        'room_id'   => $room->id,
+        'player_id' => $playerId,
+        'emoji'     => $request->sticker,
+        'created_at'=> now(),
+    ]);
+
+    return response()->json(['success' => true]);
+}
+
 }

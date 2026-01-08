@@ -261,11 +261,9 @@ function multiplayerGame(roomCode){
       'X-CSRF-TOKEN': '{{ csrf_token() }}'
     },
     body: JSON.stringify({
-    room_code: this.roomCode,
-    answer: this.answer,
-    player_id: Number(localStorage.getItem('mp_player_id'))
-  })
-
+  room_code: this.roomCode,
+  answer: this.answer
+})
 
   })
   .then(() => {
@@ -300,7 +298,7 @@ function multiplayerGame(roomCode){
 
   setTimeout(() => {
     this.stickerCooldown = false;
-  }, 20000);
+  }, 5000);
 },
 
 

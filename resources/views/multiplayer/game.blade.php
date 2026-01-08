@@ -8,30 +8,25 @@
   class="relative max-w-6xl mx-auto p-4"
 >
 
-  <!-- STICKER CHAT -->
-  <div class="fixed bottom-20 right-4 space-y-2 w-48 pointer-events-none">
-    <template x-for="s in stickersLive" :key="s.id">
-      <div class="bg-white rounded-xl shadow px-3 py-2 text-lg flex items-center gap-2">
-        <span class="text-xs font-semibold text-gray-500"
-          x-text="playerName(s.player_id)">
-        </span>
-        <span x-text="s.emoji"></span>
-      </div>
-    </template>
-  </div>
-
   <!-- PLAYER POSITIONS -->
   <div class="relative h-[520px]">
 
     <template x-for="(p, i) in players" :key="p.id">
       <div
-        class="player-card"
+        class="player-card relative"
         :class="[
           p.id === currentTurnId ? 'active-turn' : '',
           positionClass(i),
           colorClass(p.color)
         ]"
       >
+        <!-- STICKER REACTION (KECIL, DI ATAS CARD) -->
+        <template x-if="playerSticker(p.id)">
+          <div class="player-sticker">
+            <span x-text="playerSticker(p.id)"></span>
+          </div>
+        </template>
+
         <div class="font-bold text-sm" x-text="p.player_name"></div>
         <div class="text-xs">Skor: <span x-text="p.score"></span></div>
       </div>
@@ -64,7 +59,7 @@
         </div>
 
         <!-- INPUT -->
-        <div class="flex gap-2">
+        <div class="flex gap-2 flex-col sm:flex-row">
           <input
             x-model="answer"
             :disabled="!isMyTurn || submitting"
@@ -74,8 +69,7 @@
           <button
             @click="submit"
             :disabled="!isMyTurn || submitting"
-            class="px-4 py-2 bg-indigo-600 text-white rounded disabled:opacity-50"
-          >
+            class="w-full sm:w-auto">
             Kirim
           </button>
         </div>
@@ -118,12 +112,13 @@ function multiplayerGame(roomCode){
     submitting: false,
 
     stickers: [
-  { id: 1, emoji: '👍', name: 'like' },
-  { id: 2, emoji: '😂', name: 'laugh' },
-  { id: 3, emoji: '🔥', name: 'fire' },
-  { id: 4, emoji: '😱', name: 'shock' },
-  { id: 5, emoji: '👏', name: 'clap' },
+  { id: 1, emoji: '👍' },
+  { id: 2, emoji: '😂' },
+  { id: 3, emoji: '🔥' },
+  { id: 4, emoji: '😱' },
+  { id: 5, emoji: '👏' },
 ],
+
     stickersLive: [],
     stickerCooldown: false,
 
@@ -134,7 +129,7 @@ function multiplayerGame(roomCode){
       this.fetchState();
       setInterval(() => {
       if (!this.submitting) this.fetchState();
-    }, 2000);
+    }, 3000);
     },
 
     fetchState(){
@@ -154,6 +149,13 @@ function multiplayerGame(roomCode){
 
             // STICKER
             this.stickersLive = d.stickers ?? [];
+
+            // auto-clear setelah 2 detik (client only)
+            clearTimeout(this._stickerTimer);
+            this._stickerTimer = setTimeout(() => {
+              this.stickersLive = [];
+            }, 2000);
+
       })
       .catch(() => {
         console.warn('Polling failed');
@@ -224,7 +226,10 @@ function multiplayerGame(roomCode){
 
   setTimeout(() => this.stickerCooldown = false, 5000);
 },
-
+playerSticker(pid) {
+  const s = this.stickersLive.find(x => x.player_id === pid);
+  return s ? s.emoji : null;
+},
     get isMyTurn(){
     return this.myPlayerId === this.currentTurnId;
   },
@@ -274,5 +279,15 @@ function multiplayerGame(roomCode){
 .active-turn{
   box-shadow:0 0 0 3px rgba(99,102,241,.4);
 }
+.player-sticker{
+  position:absolute;
+  top:-18px;
+  left:50%;
+  transform:translateX(-50%);
+  font-size:20px;
+  line-height:1;
+  pointer-events:none;
+}
+
 </style>
 @endsection

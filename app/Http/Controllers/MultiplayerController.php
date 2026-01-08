@@ -229,11 +229,15 @@ class MultiplayerController extends Controller
         ->skip($room->current_question_index)
         ->first();
 
-    $stickers = DB::table('multiplayer_stickers')
-        ->where('room_id', $room->id)
-        ->orderBy('id')
-        ->limit(5)
-        ->get();
+    $stickers = DB::table('multiplayer_stickers as ms')
+    ->select('ms.player_id', 'ms.emoji')
+    ->where('ms.room_id', $room->id)
+    ->whereIn('ms.id', function ($q) {
+        $q->select(DB::raw('MAX(id)'))
+          ->from('multiplayer_stickers')
+          ->groupBy('player_id');
+    })
+    ->get();
 
     return response()->json([
         'room_status'            => $room->status,

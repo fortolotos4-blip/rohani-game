@@ -15,7 +15,7 @@
         <span class="text-xs font-semibold text-gray-500"
           x-text="playerName(s.player_id)">
         </span>
-        <span x-text="s.sticker"></span>
+        <span x-text="s.emoji"></span>
       </div>
     </template>
   </div>

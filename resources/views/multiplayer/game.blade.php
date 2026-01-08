@@ -118,44 +118,39 @@ function multiplayerGame(roomCode){
 
     stickers: ['👍','😂','🔥','😱','👏'],
     stickersLive: [],
-    lastStickerId: 0,
     stickerCooldown: false,
 
-    pollId: null,
+    myPlayerId: null,
+
 
     init(){
       this.fetchState();
-      this.pollId = setInterval(() => this.fetchState(), 2500);
+      setInterval(() => {
+      if (!this.submitting) this.fetchState();
+    }, 2000);
     },
 
     fetchState(){
       fetch(`/multiplayer/game-state/${this.roomCode}`)
-        .then(r => r.json())
-        .then(d => {
+      .then(r => {
+        if (!r.ok) throw new Error('Network error');
+        return r.json();
+      })
+      .then(d => {
+        this.players = d.players ?? [];
+            this.currentTurnId = d.current_turn_player_id;
+            this.myPlayerId = d.my_player_id;
 
-          this.players = d.players ?? [];
-          this.currentTurnId = d.current_turn_player_id;
-          this.question = d.question;
+            this.question = d.question;
+            this.turnLeft = d.turn_left ?? 0;
+            this.sessionLeft = d.session_left ?? 0;
 
-          this.turnLeft = d.turn_left ?? 0;
-          this.sessionLeft = d.session_left ?? 0;
-
-          // STICKER REALTIME
-          const incoming = d.stickers ?? [];
-          const fresh = incoming.filter(s => s.id > this.lastStickerId);
-
-          fresh.forEach(s => {
-            this.stickersLive.push(s);
-            setTimeout(() => {
-              this.stickersLive = this.stickersLive.filter(x => x.id !== s.id);
-            }, 3000);
-          });
-
-          if (fresh.length) {
-            this.lastStickerId = fresh.at(-1).id;
-          }
-
-        });
+            // STICKER
+            this.stickersLive = d.stickers ?? [];
+      })
+      .catch(() => {
+        console.warn('Polling failed');
+      });
     },
 
     submit(){
@@ -202,9 +197,8 @@ function multiplayerGame(roomCode){
     },
 
     get isMyTurn(){
-      const me = Number(localStorage.getItem('mp_player_id'));
-      return me && me === this.currentTurnId;
-    },
+    return this.myPlayerId === this.currentTurnId;
+  },
 
     get answerSlots(){
       return this.question ? this.question.answer_length : 0;

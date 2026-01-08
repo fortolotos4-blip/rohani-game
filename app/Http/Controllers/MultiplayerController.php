@@ -8,6 +8,35 @@ use App\Question;
 
 class MultiplayerController extends Controller
 {
+
+    private function forceNextTurn($room)
+{
+    DB::transaction(function () use ($room) {
+
+        $currentOrder = DB::table('multiplayer_room_players')
+            ->where('id', $room->current_turn_player_id)
+            ->value('turn_order');
+
+        $nextPlayer = DB::table('multiplayer_room_players')
+            ->where('room_id', $room->id)
+            ->where('turn_order', '>', $currentOrder)
+            ->orderBy('turn_order')
+            ->first()
+            ?? DB::table('multiplayer_room_players')
+                ->where('room_id', $room->id)
+                ->orderBy('turn_order')
+                ->first();
+
+        DB::table('multiplayer_rooms')
+            ->where('id', $room->id)
+            ->update([
+                'current_turn_player_id' => $nextPlayer->id,
+                'turn_started_at'        => now(),
+                'turn_locked'            => false,
+            ]);
+    });
+}
+
     /* =========================================================
      * UTIL
      * =======================================================*/
@@ -170,64 +199,57 @@ class MultiplayerController extends Controller
      * GAME STATE (POLLING)
      * =======================================================*/
     public function gameState(string $code)
-    {
-        $room = DB::table('multiplayer_rooms')
-            ->where('room_code', $code)
-            ->first();
+{
+    $playerId = session('multiplayer_player_id');
 
-        if (!$room) {
-            return response()->json(['error' => 'Room not found'], 404);
-        }
+    $room = DB::table('multiplayer_rooms')
+        ->where('room_code', $code)
+        ->first();
 
-        $players = DB::table('multiplayer_room_players')
-            ->where('room_id', $room->id)
-            ->orderBy('turn_order')
-            ->get();
-
-        $playerId = session('multiplayer_player_id');
-
-        if ($room->status !== 'playing') {
-            return response()->json([
-                'room_status' => $room->status,
-                'players'     => $players,
-                'is_my_turn'  => false,
-            ]);
-        }
-
-        $turnLeft = max(0, 30 - now()->diffInSeconds($room->turn_started_at));
-        $sessionLeft = max(0, 350 - now()->diffInSeconds($room->game_started_at));
-
-        $question = Question::where('image_path', 'like', 'images/%')
-            ->orderBy('id')
-            ->skip($room->current_question_index)
-            ->first();
-
-        $stickers = DB::table('multiplayer_stickers')
-            ->where('room_id', $room->id)
-            ->orderBy('id', 'desc')
-            ->limit(5)
-            ->get()
-            ->reverse()
-            ->values();
-
-        return response()->json([
-            'room_status'            => 'playing',
-            'players'                => $players,
-            'current_turn_player_id' => $room->current_turn_player_id,
-            'is_my_turn'             => $room->current_turn_player_id === $playerId,
-            'turn_left'              => $turnLeft,
-            'session_left'           => $sessionLeft,
-            'question'               => $question ? [
-                'image'         => '/' . ltrim($question->image_path, '/'),
-                'answer_length' => (int) $question->answer_slots,
-            ] : null,
-            'stickers' => $stickers->map(fn ($s) => [
-                'id'        => $s->id,
-                'player_id' => $s->player_id,
-                'sticker'   => $s->emoji,
-            ]),
-        ]);
+    if (!$room) {
+        return response()->json(['error' => 'Room not found'], 404);
     }
+
+    // ⏱️ FORCE TURN TIMEOUT (SERVER AUTHORITY)
+    if ($room->status === 'playing' && !$room->turn_locked) {
+        $elapsed = now()->diffInSeconds($room->turn_started_at);
+        if ($elapsed >= 30) {
+            $this->forceNextTurn($room);
+            $room = DB::table('multiplayer_rooms')->where('id', $room->id)->first();
+        }
+    }
+
+    $players = DB::table('multiplayer_room_players')
+        ->where('room_id', $room->id)
+        ->orderBy('turn_order')
+        ->get();
+
+    $question = Question::where('image_path', 'like', 'images/%')
+        ->orderBy('id')
+        ->skip($room->current_question_index)
+        ->first();
+
+    $stickers = DB::table('multiplayer_stickers')
+        ->where('room_id', $room->id)
+        ->orderBy('id')
+        ->limit(5)
+        ->get();
+
+    return response()->json([
+        'room_status'            => $room->status,
+        'players'                => $players,
+        'current_turn_player_id' => $room->current_turn_player_id,
+        'my_player_id'           => $playerId,
+        'turn_left'              => max(0, 30 - now()->diffInSeconds($room->turn_started_at)),
+        'session_left'           => max(0, 350 - now()->diffInSeconds($room->game_started_at)),
+        'question'               => $question ? [
+            'image'         => '/' . ltrim($question->image_path, '/'),
+            'answer_length' => (int) $question->answer_slots,
+        ] : null,
+        'stickers' => $stickers,
+    ]);
+}
+
 
     /* =========================================================
      * ANSWER
@@ -251,7 +273,18 @@ class MultiplayerController extends Controller
             ->lockForUpdate()
             ->first();
 
-        if (!$room || $room->current_turn_player_id !== $playerId || $room->turn_locked) {
+        if (!$room) {
+            DB::rollBack();
+            return response()->json(['error' => 'Room not found'], 404);
+        }
+
+        $elapsed = now()->diffInSeconds($room->turn_started_at);
+        if ($elapsed >= 30) {
+            DB::rollBack();
+            return response()->json(['error' => 'Turn expired'], 403);
+        }
+
+        if ($room->current_turn_player_id !== $playerId || $room->turn_locked) {
             DB::rollBack();
             return response()->json(['error' => 'Not your turn'], 403);
         }

@@ -27,6 +27,11 @@ class MultiplayerController extends Controller
                 ->orderBy('turn_order')
                 ->first();
 
+        // ✅ GUARD WAJIB (EDGE CASE AMAN)
+        if (!$nextPlayer) {
+            return;
+        }
+
         DB::table('multiplayer_rooms')
             ->where('id', $room->id)
             ->update([
@@ -36,6 +41,7 @@ class MultiplayerController extends Controller
             ]);
     });
 }
+
 
     /* =========================================================
      * UTIL
@@ -213,7 +219,7 @@ class MultiplayerController extends Controller
     // ⏱️ FORCE TURN TIMEOUT (SERVER AUTHORITY)
     if ($room->status === 'playing' && !$room->turn_locked) {
         $elapsed = now()->diffInSeconds($room->turn_started_at);
-        if ($elapsed >= 30) {
+        if ($elapsed >= 60) {
             $this->forceNextTurn($room);
             $room = DB::table('multiplayer_rooms')->where('id', $room->id)->first();
         }
@@ -229,29 +235,38 @@ class MultiplayerController extends Controller
         ->skip($room->current_question_index)
         ->first();
 
-    $stickers = DB::table('multiplayer_stickers as ms')
-    ->select('ms.player_id', 'ms.emoji')
-    ->where('ms.room_id', $room->id)
-    ->whereIn('ms.id', function ($q) {
-        $q->select(DB::raw('MAX(id)'))
-          ->from('multiplayer_stickers')
-          ->groupBy('player_id');
-    })
+    $stickers = DB::table('multiplayer_stickers')
+    ->select('player_id', 'emoji')
+    ->where('room_id', $room->id)
+    ->where('created_at', '>=', now()->subSeconds(4))
     ->get();
 
+    $sessionLeft = max(0, 450 - now()->diffInSeconds($room->game_started_at));
+
+if ($sessionLeft === 0 && $room->status === 'playing') {
+    DB::table('multiplayer_rooms')
+        ->where('id', $room->id)
+        ->update(['status' => 'finished']);
+}
+
+
     return response()->json([
-        'room_status'            => $room->status,
-        'players'                => $players,
-        'current_turn_player_id' => $room->current_turn_player_id,
-        'my_player_id'           => $playerId,
-        'turn_left'              => max(0, 30 - now()->diffInSeconds($room->turn_started_at)),
-        'session_left'           => max(0, 350 - now()->diffInSeconds($room->game_started_at)),
-        'question'               => $question ? [
-            'image'         => '/' . ltrim($question->image_path, '/'),
-            'answer_length' => (int) $question->answer_slots,
-        ] : null,
-        'stickers' => $stickers,
-    ]);
+    'room_status'            => $room->status,
+    'session_left'           => $sessionLeft,
+
+    'players'                => $players,
+    'current_turn_player_id' => $room->current_turn_player_id,
+    'my_player_id'           => $playerId,
+    'turn_left'              => max(0, 60 - now()->diffInSeconds($room->turn_started_at)),
+
+    'question' => $question ? [
+        'image'         => '/' . ltrim($question->image_path, '/'),
+        'answer_length' => (int) $question->answer_slots,
+    ] : null,
+
+    'stickers' => $stickers,
+]);
+
 }
 
 
@@ -283,7 +298,7 @@ class MultiplayerController extends Controller
         }
 
         $elapsed = now()->diffInSeconds($room->turn_started_at);
-        if ($elapsed >= 30) {
+        if ($elapsed >= 60) {
             DB::rollBack();
             return response()->json(['error' => 'Turn expired'], 403);
         }

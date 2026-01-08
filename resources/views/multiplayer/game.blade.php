@@ -9,28 +9,46 @@
 >
 
   <!-- PLAYER POSITIONS -->
-  <div class="relative h-[520px]">
+<div class="relative h-[520px]">
 
-    <template x-for="(p, i) in players" :key="p.id">
-      <div
-        class="player-card relative"
-        :class="[
-          p.id === currentTurnId ? 'active-turn' : '',
-          positionClass(i),
-          colorClass(p.color)
-        ]"
-      >
-        <!-- STICKER REACTION (KECIL, DI ATAS CARD) -->
+  <template x-for="(p, i) in players" :key="p.id">
+    <div
+      class="player-card relative"
+      :class="[
+        p.id === currentTurnId ? 'active-turn' : '',
+        positionClass(i),
+        colorClass(p.color)
+      ]"
+    >
+
+      <!-- ISI CARD -->
+      <div class="flex justify-between items-center">
+
+        <!-- NAMA & SKOR -->
+        <div>
+          <div class="font-bold text-sm" x-text="p.player_name"></div>
+          <div class="text-xs">
+            Skor: <span x-text="p.score"></span>
+          </div>
+        </div>
+
+        <!-- STICKER (DI DALAM KOTAK MERAH) -->
         <template x-if="playerSticker(p.id)">
-          <div class="player-sticker">
+          <div
+            class="inline-flex items-center justify-center
+                   w-8 h-8 rounded-full bg-gray-100 text-lg"
+          >
             <span x-text="playerSticker(p.id)"></span>
           </div>
         </template>
 
-        <div class="font-bold text-sm" x-text="p.player_name"></div>
-        <div class="text-xs">Skor: <span x-text="p.score"></span></div>
       </div>
-    </template>
+
+    </div>
+  </template>
+
+</div>
+
 
     <!-- CENTER GAME -->
     <div class="absolute inset-0 flex items-center justify-center pointer-events-none">
@@ -69,7 +87,8 @@
           <button
             @click="submit"
             :disabled="!isMyTurn || submitting"
-            class="w-full sm:w-auto">
+            class="w-full sm:w-auto border border-indigo-600
+         text-indigo-600 font-semibold rounded px-4 py-2">
             Kirim
           </button>
         </div>
@@ -95,11 +114,38 @@
   </div>
 
 </div>
+<!-- GAME FINISHED POPUP -->
+<template x-if="roomStatus === 'finished'">
+  <div class="fixed inset-0 bg-black/60 flex items-center justify-center z-50">
+    <div class="bg-white rounded-xl p-6 w-80 text-center">
+      <div class="text-3xl mb-2">🏁</div>
+      <h2 class="font-bold text-lg mb-2">Game Berakhir</h2>
+
+      <div class="text-sm mb-4">
+        <template x-for="p in players" :key="p.id">
+          <div class="flex justify-between">
+            <span x-text="p.player_name"></span>
+            <span x-text="p.score"></span>
+          </div>
+        </template>
+      </div>
+
+      <a href="/dashboard"
+         class="block mt-3 bg-indigo-600 text-white rounded py-2">
+        Kembali ke Dashboard
+      </a>
+    </div>
+  </div>
+</template>
+
 
 <script>
 function multiplayerGame(roomCode){
   return {
     roomCode,
+
+    roomStatus: null,
+
 
     players: [],
     currentTurnId: null,
@@ -146,6 +192,8 @@ function multiplayerGame(roomCode){
             this.question = d.question;
             this.turnLeft = d.turn_left ?? 0;
             this.sessionLeft = d.session_left ?? 0;
+
+            this.roomStatus = d.room_status;
 
             // STICKER
             this.stickersLive = d.stickers ?? [];

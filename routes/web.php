@@ -98,20 +98,25 @@ Route::prefix('tts/room')->group(function () {
 
 Route::prefix('multiplayer')->group(function () {
 
+    // ===== UI =====
+    Route::get('/menu', function () {
+        return view('multiplayer.menu');
+    })->name('multiplayer.menu');
+
+    Route::get('/lobby/{roomCode}', function ($roomCode) {
+        return view('multiplayer.lobby', compact('roomCode'));
+    })->name('multiplayer.lobby');
+
     Route::get('/game/{roomCode}', function ($roomCode) {
         return view('multiplayer.game', compact('roomCode'));
-    });
+    })->name('multiplayer.game');
 
-    // POLLING (GET)
+    // ===== POLLING =====
     Route::get('/game-state/{code}', [MultiplayerController::class, 'gameState']);
 
-    // ACTION (POST)
+    // ===== ACTION =====
     Route::post('/answer',  [MultiplayerController::class, 'submitAnswer']);
     Route::post('/sticker', [MultiplayerController::class, 'sendSticker']);
 });
-
-
-
-
 
 

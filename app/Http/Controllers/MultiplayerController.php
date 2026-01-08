@@ -347,7 +347,8 @@ class MultiplayerController extends Controller
     {
         $request->validate([
             'room_code' => 'required',
-            'sticker'   => 'required|string|max:10',
+            'sticker_id'=> 'required|integer',
+            'emoji'      => 'required|string|max:10',
         ]);
 
         $playerId = session('multiplayer_player_id');
@@ -366,7 +367,7 @@ class MultiplayerController extends Controller
         DB::table('multiplayer_stickers')->insert([
             'room_id'    => $room->id,
             'player_id'  => $playerId,
-            'emoji'      => $request->sticker,
+            'emoji'      => $request->emoji,
             'created_at' => now(),
         ]);
 

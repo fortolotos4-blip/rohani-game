@@ -87,15 +87,16 @@
   <!-- STICKERS -->
   <div class="mt-4 text-center">
     <div class="flex justify-center gap-2">
-      <template x-for="s in stickers" :key="s">
-        <button
-          @click="sendSticker(s)"
-          :disabled="stickerCooldown"
-          class="px-3 py-1 border rounded bg-gray-100 disabled:opacity-40"
-        >
-          <span x-text="s"></span>
-        </button>
-      </template>
+      <template x-for="s in stickers" :key="s.id">
+      <button
+        @click="sendSticker(s)"
+        :disabled="stickerCooldown"
+        class="px-3 py-1 border rounded bg-gray-100 disabled:opacity-40"
+      >
+        <span x-text="s.emoji"></span>
+      </button>
+    </template>
+
     </div>
   </div>
 
@@ -116,7 +117,13 @@ function multiplayerGame(roomCode){
     answer: '',
     submitting: false,
 
-    stickers: ['👍','😂','🔥','😱','👏'],
+    stickers: [
+  { id: 1, emoji: '👍', name: 'like' },
+  { id: 2, emoji: '😂', name: 'laugh' },
+  { id: 3, emoji: '🔥', name: 'fire' },
+  { id: 4, emoji: '😱', name: 'shock' },
+  { id: 5, emoji: '👏', name: 'clap' },
+],
     stickersLive: [],
     stickerCooldown: false,
 
@@ -188,36 +195,35 @@ function multiplayerGame(roomCode){
     .finally(() => this.submitting = false);
   },
 
-      sendSticker(s){
-    if (this.stickerCooldown) return;
+      sendSticker(sticker){
+  if (this.stickerCooldown) return;
 
-    this.stickerCooldown = true;
+  this.stickerCooldown = true;
 
-    fetch('/multiplayer/sticker', {
-      method: 'POST',
-      credentials: 'same-origin', // 🔥 INI WAJIB
-      headers: {
-        'Content-Type': 'application/json',
-        'X-CSRF-TOKEN': '{{ csrf_token() }}'
-      },
-      body: JSON.stringify({
-        room_code: this.roomCode,
-        sticker: s
-      })
+  fetch('/multiplayer/sticker', {
+    method: 'POST',
+    credentials: 'same-origin',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-CSRF-TOKEN': '{{ csrf_token() }}'
+    },
+    body: JSON.stringify({
+      room_code: this.roomCode,
+      sticker_id: sticker.id,     // 🔥 IDENTITAS
+      emoji: sticker.emoji        // 🔥 DATA
     })
-    .then(r => {
-      if (!r.ok) throw new Error('Sticker failed');
-      return r.json();
-    })
-    .then(() => {
-      this.fetchState(); // tampilkan bubble
-    })
-    .catch(err => {
-      console.warn(err.message);
-    });
+  })
+  .then(r => {
+    if (!r.ok) throw new Error('Sticker failed');
+    return r.json();
+  })
+  .then(() => {
+    this.fetchState();
+  })
+  .catch(err => console.warn(err.message));
 
-    setTimeout(() => this.stickerCooldown = false, 5000);
-  },
+  setTimeout(() => this.stickerCooldown = false, 5000);
+},
 
     get isMyTurn(){
     return this.myPlayerId === this.currentTurnId;

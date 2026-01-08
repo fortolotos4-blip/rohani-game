@@ -145,6 +145,15 @@
     </div>
   </div>
 
+  <div class="fixed bottom-20 right-4 space-y-2 w-48">
+  <template x-for="s in stickersLive" :key="s.id">
+    <div class="bg-white rounded-lg shadow px-3 py-2 text-lg">
+      <span x-text="s.sticker"></span>
+    </div>
+  </template>
+</div>
+
+
 </div>
 
 <script>
@@ -156,6 +165,8 @@ function multiplayerGame(roomCode){
     stickersLive: [],
     sessionLeft: 350,
     turnLeft: 30,
+    isMyTurn: false,
+
 
     lastStickerId: 0,
 
@@ -179,17 +190,11 @@ function multiplayerGame(roomCode){
 },
 
    init() {
-  if (!localStorage.getItem('mp_player_id')) {
-    localStorage.setItem(
-      'mp_player_id',
-      {{ session('multiplayer_player_id') ?? 0 }}
-    );
-  }
 
   this.fetchState();
 
   // 🔁 polling 1 detik → cukup & ringan
-  this.pollId = setInterval(() => this.fetchState(), 1000);
+  this.pollId = setInterval(() => this.fetchState(), 2000);
 },
 
    fetchState() {
@@ -208,6 +213,7 @@ function multiplayerGame(roomCode){
       // 🎮 core state
       this.players = d.players;
       this.currentTurnId = d.current_turn_player_id;
+      this.isMyTurn = d.is_my_turn === true;
       this.question = d.question;
 
       // 🔄 sync timer dari server (snapshot)
@@ -261,14 +267,14 @@ function multiplayerGame(roomCode){
       'X-CSRF-TOKEN': '{{ csrf_token() }}'
     },
     body: JSON.stringify({
-  room_code: this.roomCode,
-  answer: this.answer
-})
-
+      room_code: this.roomCode,
+      answer: this.answer
+    })
   })
+  .then(r => r.json())
   .then(() => {
     this.answer = '';
-    this.fetchState(); // ⬅️ refresh cepat
+    this.fetchState();
   })
   .finally(() => {
     this.submitting = false;
@@ -287,13 +293,11 @@ function multiplayerGame(roomCode){
       'X-CSRF-TOKEN': '{{ csrf_token() }}'
     },
     body: JSON.stringify({
-    room_code: this.roomCode,
-    sticker: s,
-    player_id: Number(localStorage.getItem('mp_player_id'))
-  })
-
+      room_code: this.roomCode,
+      sticker: s
+    })
   }).then(() => {
-    this.fetchState(); // ⬅️ WAJIB agar pemain lain lihat
+    this.fetchState();
   });
 
   setTimeout(() => {
@@ -301,13 +305,7 @@ function multiplayerGame(roomCode){
   }, 5000);
 },
 
-
-    get isMyTurn() {
-  const me = Number(localStorage.getItem('mp_player_id'));
-  return me && this.currentTurnId === me;
-},
-
-    get validationText(){
+  get validationText(){
   if(!this.lastValidation) return '';
   return this.lastValidation.correct
     ? 'Jawaban BENAR!'

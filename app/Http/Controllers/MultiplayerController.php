@@ -287,6 +287,7 @@ class MultiplayerController extends Controller
 
         return response()->json([
             'room_status'            => 'finished',
+            'is_my_turn' => $room->current_turn_player_id === session('multiplayer_player_id'),
             'current_turn_player_id' => null,
             'turn_left'              => 0,
             'session_left'           => 0,

@@ -8,9 +8,85 @@ use App\Question;
 
 class MultiplayerController extends Controller
 {
+    /* =========================
+     * UTIL
+     * ========================= */
     private function normalize(string $value): string
     {
         return strtolower(preg_replace('/[^a-z0-9]/', '', $value));
+    }
+
+    /* =========================
+     * CREATE ROOM
+     * ========================= */
+    public function createRoom(Request $request)
+    {
+        $request->validate([
+            'player_name' => 'required|string|max:30',
+            'max_players' => 'required|integer|min:2|max:4',
+        ]);
+
+        $roomCode = strtoupper(substr(md5(uniqid()), 0, 6));
+
+        DB::beginTransaction();
+
+        $roomId = DB::table('multiplayer_rooms')->insertGetId([
+            'room_code' => $roomCode,
+            'max_players' => $request->max_players,
+            'status' => 'waiting',
+            'current_question_index' => 0,
+            'turn_locked' => false,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $playerId = DB::table('multiplayer_room_players')->insertGetId([
+            'room_id' => $roomId,
+            'player_name' => $request->player_name,
+            'color' => 'blue',
+            'score' => 0,
+            'joined_at' => now(),
+        ]);
+
+        session(['multiplayer_player_id' => $playerId]);
+
+        DB::commit();
+
+        return response()->json([
+            'room_code' => $roomCode,
+            'player_id' => $playerId,
+        ]);
+    }
+
+    /* =========================
+     * JOIN ROOM
+     * ========================= */
+    public function joinRoom(Request $request)
+    {
+        $request->validate([
+            'player_name' => 'required|string|max:30',
+            'room_code'   => 'required|string',
+        ]);
+
+        $room = DB::table('multiplayer_rooms')
+            ->where('room_code', $request->room_code)
+            ->first();
+
+        if (!$room) {
+            return response()->json(['error' => 'Room not found'], 404);
+        }
+
+        $playerId = DB::table('multiplayer_room_players')->insertGetId([
+            'room_id' => $room->id,
+            'player_name' => $request->player_name,
+            'color' => 'red',
+            'score' => 0,
+            'joined_at' => now(),
+        ]);
+
+        session(['multiplayer_player_id' => $playerId]);
+
+        return response()->json(['success' => true]);
     }
 
     /* =========================
@@ -33,8 +109,8 @@ class MultiplayerController extends Controller
         if ($room->status !== 'playing') {
             return response()->json([
                 'room_status' => $room->status,
-                'players'     => $players,
-                'is_my_turn'  => false,
+                'players' => $players,
+                'is_my_turn' => false,
             ]);
         }
 
@@ -46,33 +122,17 @@ class MultiplayerController extends Controller
             ->skip($room->current_question_index)
             ->first();
 
-        $stickers = DB::table('multiplayer_stickers')
-            ->where('room_id', $room->id)
-            ->orderBy('id', 'desc')
-            ->limit(5)
-            ->get()
-            ->reverse()
-            ->values();
-
         return response()->json([
-            'room_status'            => 'playing',
-            'players'                => $players,
+            'room_status' => 'playing',
+            'players' => $players,
             'current_turn_player_id' => $room->current_turn_player_id,
-            'is_my_turn'             => $room->current_turn_player_id === $playerId,
-            'turn_left'              => $turnLeft,
-            'session_left'           => $sessionLeft,
-            'question'               => $question ? [
-                'image'         => '/' . ltrim($question->image_path, '/'),
+            'is_my_turn' => $room->current_turn_player_id === $playerId,
+            'turn_left' => $turnLeft,
+            'session_left' => $sessionLeft,
+            'question' => $question ? [
+                'image' => '/' . ltrim($question->image_path, '/'),
                 'answer_length' => (int) $question->answer_slots,
             ] : null,
-            'stickers' => $stickers->map(fn ($s) => [
-                'id'        => $s->id,
-                'player_id' => $s->player_id,
-                'sticker'   => $s->emoji,
-            ]),
-            'last_validation' => $room->last_validation
-                ? json_decode($room->last_validation, true)
-                : null,
         ]);
     }
 
@@ -83,7 +143,7 @@ class MultiplayerController extends Controller
     {
         $request->validate([
             'room_code' => 'required',
-            'answer'    => 'required|string',
+            'answer' => 'required|string',
         ]);
 
         $playerId = session('multiplayer_player_id');
@@ -98,57 +158,13 @@ class MultiplayerController extends Controller
             ->lockForUpdate()
             ->first();
 
-        if (!$room || $room->current_turn_player_id !== $playerId || $room->turn_locked) {
+        if (!$room || $room->current_turn_player_id !== $playerId) {
             DB::rollBack();
             return response()->json(['error' => 'Not your turn'], 403);
         }
 
-        DB::table('multiplayer_rooms')->where('id', $room->id)
-            ->update(['turn_locked' => true]);
-
-        $question = Question::where('image_path', 'like', 'images/%')
-            ->orderBy('id')
-            ->skip($room->current_question_index)
-            ->first();
-
-        $correct = $this->normalize($request->answer) ===
-                   $this->normalize($question->answer_text);
-
-        if ($correct) {
-            DB::table('multiplayer_room_players')
-                ->where('id', $playerId)
-                ->increment('score');
-
-            DB::table('multiplayer_rooms')
-                ->where('id', $room->id)
-                ->increment('current_question_index');
-        }
-
-        // NEXT PLAYER
-        $currentOrder = DB::table('multiplayer_room_players')
-            ->where('id', $playerId)
-            ->value('turn_order');
-
-        $next = DB::table('multiplayer_room_players')
-            ->where('room_id', $room->id)
-            ->where('turn_order', '>', $currentOrder)
-            ->orderBy('turn_order')
-            ->first()
-            ?? DB::table('multiplayer_room_players')
-                ->where('room_id', $room->id)
-                ->orderBy('turn_order')
-                ->first();
-
-        DB::table('multiplayer_rooms')->where('id', $room->id)->update([
-            'current_turn_player_id' => $next->id,
-            'turn_started_at'        => now(),
-            'turn_locked'            => false,
-            'last_validation'        => json_encode(['correct' => $correct]),
-        ]);
-
         DB::commit();
-
-        return response()->json(['correct' => $correct]);
+        return response()->json(['success' => true]);
     }
 
     /* =========================
@@ -158,7 +174,7 @@ class MultiplayerController extends Controller
     {
         $request->validate([
             'room_code' => 'required',
-            'sticker'   => 'required|string|max:10',
+            'sticker' => 'required|string|max:10',
         ]);
 
         $playerId = session('multiplayer_player_id');
@@ -171,10 +187,10 @@ class MultiplayerController extends Controller
             ->first();
 
         DB::table('multiplayer_stickers')->insert([
-            'room_id'   => $room->id,
+            'room_id' => $room->id,
             'player_id' => $playerId,
-            'emoji'     => $request->sticker,
-            'created_at'=> now(),
+            'emoji' => $request->sticker,
+            'created_at' => now(),
         ]);
 
         return response()->json(['success' => true]);

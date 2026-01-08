@@ -166,6 +166,9 @@ function multiplayerGame(roomCode){
     question: null,
     pollId: null,
 
+    sessionTicker: null,
+    turnTicker: null,
+
     stickers: ['👍','😂','🔥','😱','👏'],
     stickerCooldown: false,
 
@@ -175,32 +178,69 @@ function multiplayerGame(roomCode){
   return this.question ? this.question.answer_length : 0;
 },
 
-    init(){
-  if(!localStorage.getItem('mp_player_id')){
+    init() {
+  if (!localStorage.getItem('mp_player_id')) {
     localStorage.setItem(
-  'mp_player_id',
-  {{ session('multiplayer_player_id') ? session('multiplayer_player_id') : '0' }}
-);
+      'mp_player_id',
+      {{ session('multiplayer_player_id') ? session('multiplayer_player_id') : '0' }}
+    );
   }
+
   this.fetchState();
-  this.pollId = setInterval(this.fetchState, 2000);
+
+  // 🔁 polling realtime (1 detik)
+  this.pollId = setInterval(() => this.fetchState(), 1000);
+
+  // ⏳ game timer lokal
+  this.sessionTicker = setInterval(() => {
+    if (this.sessionLeft > 0) this.sessionLeft--;
+  }, 1000);
+
+  // 🎯 turn timer + auto refresh
+  this.turnTicker = setInterval(() => {
+    if (this.turnLeft > 0) {
+      this.turnLeft--;
+    } else {
+      this.fetchState(); // ⬅️ paksa pindah giliran
+    }
+  }, 1000);
 },
 
-
-   fetchState(){
+   fetchState() {
   if (this.gameOver) return;
 
   fetch(`/api/multiplayer/game-state/${this.roomCode}`)
     .then(r => r.json())
     .then(d => {
+
+      // ⛔ game belum mulai → jangan render apa pun
+      if (d.room_status !== 'playing') {
+        this.players = d.players ?? [];
+        return;
+      }
+
+      // 🎮 core state
       this.players = d.players;
-      this.sessionLeft = d.session_left;
-      this.question = d.question;
       this.currentTurnId = d.current_turn_player_id;
-      this.turnLeft = d.turn_left;
+      this.question = d.question;
 
+      // 🔄 sync timer dari server (snapshot)
+      if (typeof d.session_left === 'number') {
+        this.sessionLeft = d.session_left;
+      }
+
+      if (typeof d.turn_left === 'number') {
+        this.turnLeft = d.turn_left;
+      }
+
+      // ✅ VALIDATION
+      if (d.last_validation) {
+        this.lastValidation = d.last_validation;
+        setTimeout(() => this.lastValidation = null, 1500);
+      }
+
+      // 🎉 STICKER realtime
       const incoming = d.stickers ?? [];
-
       const fresh = incoming.filter(s => s.id > this.lastStickerId);
 
       fresh.forEach(s => {
@@ -214,62 +254,71 @@ function multiplayerGame(roomCode){
         this.lastStickerId = fresh.at(-1).id;
       }
 
-      if (d.last_validation) {
-        this.lastValidation = d.last_validation;
-        setTimeout(() => this.lastValidation = null, 1500);
-      }
-
+      // 🏁 GAME OVER
       if (this.sessionLeft <= 0 || d.room_status === 'finished') {
         this.gameOver = true;
         clearInterval(this.pollId);
+        clearInterval(this.sessionTicker);
+        clearInterval(this.turnTicker);
       }
     })
-    .catch(() => {
-      // silently ignore polling error
-    });
+    .catch(() => {});
 },
 
-    submit(){
-      if(this.submitting) return;
-      this.submitting = true;
+    submit() {
+  if (!this.isMyTurn || this.submitting || !this.answer.trim()) return;
 
-      fetch('/api/multiplayer/answer',{
-        method:'POST',
-        headers:{
-          'Content-Type':'application/json',
-          'X-CSRF-TOKEN':'{{ csrf_token() }}'
-        },
-        body:JSON.stringify({
-          room_code:this.roomCode,
-          answer:this.answer
-        })
-      }).finally(()=>{
-        this.answer='';
-        this.submitting=false;
-      });
+  this.submitting = true;
+
+  fetch('/api/multiplayer/answer', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-CSRF-TOKEN': '{{ csrf_token() }}'
     },
-
-    sendSticker(s){
-      if(this.stickerCooldown) return;
-      this.stickerCooldown = true;
-
-      fetch('/api/multiplayer/sticker',{
-        method:'POST',
-        headers:{
-          'Content-Type':'application/json',
-          'X-CSRF-TOKEN':'{{ csrf_token() }}'
-        },
-        body:JSON.stringify({room_code:this.roomCode,sticker:s})
-      });
-
-      setTimeout(()=>this.stickerCooldown=false,20000);
-    },
-
-    get isMyTurn(){
-  const sessionId = {{ session('multiplayer_player_id') ?? 'null' }};
-  const me = Number(localStorage.getItem('mp_player_id')) || null;
-  return this.currentTurnId === me;
+    body: JSON.stringify({
+      room_code: this.roomCode,
+      answer: this.answer
+    })
+  })
+  .then(() => {
+    this.answer = '';
+    this.fetchState(); // ⬅️ refresh cepat
+  })
+  .finally(() => {
+    this.submitting = false;
+  });
 },
+
+    sendSticker(s) {
+  if (this.stickerCooldown) return;
+
+  this.stickerCooldown = true;
+
+  fetch('/api/multiplayer/sticker', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-CSRF-TOKEN': '{{ csrf_token() }}'
+    },
+    body: JSON.stringify({
+      room_code: this.roomCode,
+      sticker: s
+    })
+  }).then(() => {
+    this.fetchState(); // ⬅️ WAJIB agar pemain lain lihat
+  });
+
+  setTimeout(() => {
+    this.stickerCooldown = false;
+  }, 20000);
+},
+
+
+    get isMyTurn() {
+  const me = Number(localStorage.getItem('mp_player_id'));
+  return me && this.currentTurnId === me;
+}
 
     get validationText(){
   if(!this.lastValidation) return '';

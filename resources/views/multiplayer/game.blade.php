@@ -4,68 +4,25 @@
 <div
   x-data="multiplayerGame('{{ $roomCode }}')"
   x-init="init()"
-  :key="players.length"
   x-cloak
-  class="relative max-w-6xl mx-auto p-4 overflow-hidden"
+  class="relative max-w-6xl mx-auto p-4"
 >
 
-<div class="fixed bottom-20 right-4 space-y-2 w-48 pointer-events-none">
-  <template x-for="s in stickersLive" :key="s.id">
-    <div
-      class="bg-white rounded-2xl shadow px-3 py-2 text-lg flex items-center gap-2"
-      x-transition
-    >
-      <span class="font-semibold text-xs text-gray-500">
-        <template x-if="players.find(p => p.id === s.player_id)">
-          <span x-text="players.find(p => p.id === s.player_id).player_name"></span>
-        </template>
-      </span>
-      <span x-text="s.sticker"></span>
-    </div>
-  </template>
-</div>
-
-
-  <!-- GAME OVER -->
-  <div
-    x-show="gameOver"
-    x-cloak
-    class="fixed inset-0 bg-black/60 flex items-center justify-center z-50"
-  >
-    <div class="bg-white rounded-lg p-6 w-80 text-center">
-      <h2 class="text-xl font-bold mb-4">🏁 Game Selesai</h2>
-
-      <template x-for="p in players" :key="p.id">
-        <div class="flex justify-between text-sm mb-1">
-          <span x-text="p.player_name"></span>
-          <span class="font-bold" x-text="p.score"></span>
-        </div>
-      </template>
-
-      <a
-        href="{{ route('guess.menu') }}"
-        class="mt-4 block bg-indigo-600 text-white rounded px-4 py-2"
-      >
-        Kembali ke Menu
-      </a>
-    </div>
+  <!-- STICKER CHAT -->
+  <div class="fixed bottom-20 right-4 space-y-2 w-48 pointer-events-none">
+    <template x-for="s in stickersLive" :key="s.id">
+      <div class="bg-white rounded-xl shadow px-3 py-2 text-lg flex items-center gap-2">
+        <span class="text-xs font-semibold text-gray-500"
+          x-text="playerName(s.player_id)">
+        </span>
+        <span x-text="s.sticker"></span>
+      </div>
+    </template>
   </div>
-
-<template x-for="s in stickersLive" :key="s.id">
-  <div
-    class="absolute"
-    :class="positionClass(
-      players.findIndex(p => p.id === s.player_id)
-    )"
-  >
-    <span x-text="s.sticker"></span>
-  </div>
-</template>
 
   <!-- PLAYER POSITIONS -->
   <div class="relative h-[520px]">
 
-    <!-- PLAYER CARD -->
     <template x-for="(p, i) in players" :key="p.id">
       <div
         class="player-card"
@@ -86,18 +43,15 @@
 
         <!-- TIMERS -->
         <div class="flex justify-between text-xs font-semibold mb-2">
-          <div>⏳ Game: <span x-text="sessionLeft ?? '-'"></span>s</div>
-          <div :class="turnLeft<=5 ? 'text-red-600 animate-pulse':''">
+          <div>⏳ Game: <span x-text="sessionLeft"></span>s</div>
+          <div :class="turnLeft <= 5 ? 'text-red-600 animate-pulse' : ''">
             🎯 Giliran: <span x-text="turnLeft"></span>s
           </div>
         </div>
 
         <!-- IMAGE -->
-        <div class="flex justify-center mb-4">
-          <img
-            :src="imageSrc"
-            class="max-h-[240px] object-contain rounded"
-          >
+        <div class="flex justify-center mb-4" x-show="question">
+          <img :src="imageSrc" class="max-h-[240px] object-contain rounded">
         </div>
 
         <!-- ANSWER SLOTS -->
@@ -110,14 +64,13 @@
         </div>
 
         <!-- INPUT -->
-        <div class="flex gap-2 mb-2">
+        <div class="flex gap-2">
           <input
             x-model="answer"
             :disabled="!isMyTurn || submitting"
             class="flex-1 border rounded px-3 py-2"
             placeholder="Jawaban..."
           >
-
           <button
             @click="submit"
             :disabled="!isMyTurn || submitting"
@@ -127,14 +80,6 @@
           </button>
         </div>
 
-        <!-- VALIDATION -->
-        <div
-  x-show="lastValidation"
-  x-transition
-  class="text-center text-sm font-semibold"
-  :class="[lastValidation && lastValidation.correct ? 'text-green-600' : 'text-red-600 shake']">
-          <span x-text="validationText"></span>
-        </div>
       </div>
     </div>
   </div>
@@ -154,149 +99,125 @@
     </div>
   </div>
 
-  <div class="fixed bottom-20 right-4 space-y-2 w-48">
-  <template x-for="s in stickersLive" :key="s.id">
-    <div class="bg-white rounded-lg shadow px-3 py-2 text-lg">
-      <span x-text="s.sticker"></span>
-    </div>
-  </template>
-</div>
-
-
 </div>
 
 <script>
 function multiplayerGame(roomCode){
   return {
     roomCode,
+
     players: [],
     currentTurnId: null,
-    stickersLive: [],
-    sessionLeft: 350,
-    turnLeft: 30,
-    isMyTurn: false,
+    question: null,
 
-
-    lastStickerId: 0,
+    sessionLeft: 0,
+    turnLeft: 0,
 
     answer: '',
     submitting: false,
-    lastValidation: null,
-
-    question: null,
-    pollId: null,
-
-    sessionTicker: null,
-    turnTicker: null,
 
     stickers: ['👍','😂','🔥','😱','👏'],
+    stickersLive: [],
+    lastStickerId: 0,
     stickerCooldown: false,
 
-    gameOver: false,
+    pollId: null,
+
+    init(){
+      this.fetchState();
+      this.pollId = setInterval(() => this.fetchState(), 2500);
+    },
+
+    fetchState(){
+      fetch(`/multiplayer/game-state/${this.roomCode}`)
+        .then(r => r.json())
+        .then(d => {
+
+          this.players = d.players ?? [];
+          this.currentTurnId = d.current_turn_player_id;
+          this.question = d.question;
+
+          this.turnLeft = d.turn_left ?? 0;
+          this.sessionLeft = d.session_left ?? 0;
+
+          // STICKER REALTIME
+          const incoming = d.stickers ?? [];
+          const fresh = incoming.filter(s => s.id > this.lastStickerId);
+
+          fresh.forEach(s => {
+            this.stickersLive.push(s);
+            setTimeout(() => {
+              this.stickersLive = this.stickersLive.filter(x => x.id !== s.id);
+            }, 3000);
+          });
+
+          if (fresh.length) {
+            this.lastStickerId = fresh.at(-1).id;
+          }
+
+        });
+    },
+
+    submit(){
+      if (!this.isMyTurn || this.submitting || !this.answer.trim()) return;
+
+      this.submitting = true;
+
+      fetch('/multiplayer/answer', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRF-TOKEN': '{{ csrf_token() }}'
+        },
+        body: JSON.stringify({
+          room_code: this.roomCode,
+          answer: this.answer
+        })
+      })
+      .then(() => {
+        this.answer = '';
+        this.fetchState();
+      })
+      .finally(() => this.submitting = false);
+    },
+
+    sendSticker(s){
+      if (this.stickerCooldown) return;
+
+      this.stickerCooldown = true;
+
+      fetch('/multiplayer/sticker', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRF-TOKEN': '{{ csrf_token() }}'
+        },
+        body: JSON.stringify({
+          room_code: this.roomCode,
+          sticker: s
+        })
+      });
+
+      setTimeout(() => this.stickerCooldown = false, 5000);
+    },
+
+    get isMyTurn(){
+      const me = Number(localStorage.getItem('mp_player_id'));
+      return me && me === this.currentTurnId;
+    },
 
     get answerSlots(){
-  return this.question ? this.question.answer_length : 0;
-},
+      return this.question ? this.question.answer_length : 0;
+    },
 
-   init() {
-  if (!localStorage.getItem('mp_player_id')) {
-      localStorage.setItem(
-        'mp_player_id',
-        {{ session('multiplayer_player_id') ?? 0 }}
-      );
-    }
+    get imageSrc(){
+      return this.question?.image ?? '';
+    },
 
-  this.fetchState();
-  this.pollId = setInterval(() => {
-  if (!this.submitting && !this.stickerCooldown) {
-    this.fetchState();
-  }
-}, 2500);
-},
-
-   fetchState() {
-  if (this.gameOver) return;
-
-fetch(`/multiplayer/game-state/${this.roomCode}`)
-  .then(r => r.json())
-  .then(d => {
-    this.players = d.players;
-    this.currentTurnId = d.current_turn_player_id;
-    this.isMyTurn = d.is_my_turn;
-    this.question = d.question;
-    this.turnLeft = d.turn_left;
-    this.sessionLeft = d.session_left;
-    this.stickersLive = d.stickers ?? [];
-  })
-    .catch(() => {});
-},
-
-    submit() {
-  if (!this.isMyTurn || this.submitting || !this.answer.trim()) return;
-
-  this.submitting = true;
-
-  fetch('/multiplayer/answer', {
-  method: 'POST',
-  headers: {
-    'Content-Type': 'application/json',
-    'X-CSRF-TOKEN': '{{ csrf_token() }}'
-  },
-  body: JSON.stringify({
-    room_code: this.roomCode,
-    answer: this.answer
-  })
-})
-  .then(r => r.json())
-  .then(() => {
-    this.answer = '';
-    this.fetchState();
-  })
-  .finally(() => {
-    this.submitting = false;
-  });
-},
-
-    sendSticker(s) {
-  if (this.stickerCooldown) return;
-
-  this.stickerCooldown = true;
-
- fetch('/multiplayer/sticker', {
-  method: 'POST',
-  headers: {
-    'Content-Type': 'application/json',
-    'X-CSRF-TOKEN': '{{ csrf_token() }}'
-  },
-  body: JSON.stringify({
-    room_code: this.roomCode,
-    sticker: s
-  })
-})
-  .then(() => {
-    this.fetchState();
-  });
-
-  setTimeout(() => {
-    this.stickerCooldown = false;
-  }, 5000);
-},
-
-  get validationText(){
-  if(!this.lastValidation) return '';
-  return this.lastValidation.correct
-    ? 'Jawaban BENAR!'
-    : 'Jawaban SALAH!';
-},
-
-get imageSrc(){
-  return this.question?.image ?? '';
-},
-
-get isMyTurn() {
-  const me = Number(localStorage.getItem('mp_player_id'));
-  return me && this.currentTurnId === me;
-},
+    playerName(pid){
+      const p = this.players.find(x => x.id === pid);
+      return p ? p.player_name : '';
+    },
 
     positionClass(i){
       return ['top-left','top-right','bottom-left','bottom-right'][i] || '';
@@ -323,21 +244,12 @@ get isMyTurn() {
   border:2px solid;
   font-size:12px;
 }
-
 .top-left{top:0;left:0}
 .top-right{top:0;right:0}
 .bottom-left{bottom:0;left:0}
 .bottom-right{bottom:0;right:0}
-
 .active-turn{
   box-shadow:0 0 0 3px rgba(99,102,241,.4);
 }
-
-@keyframes shake{
-  0%,100%{transform:translateX(0)}
-  25%{transform:translateX(-5px)}
-  75%{transform:translateX(5px)}
-}
-.shake{animation:shake .3s}
 </style>
 @endsection

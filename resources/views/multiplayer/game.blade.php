@@ -71,7 +71,11 @@
         <input
           x-model="answer"
           :disabled="!isMyTurn || submitting"
-          class="flex-1 border rounded px-3 py-2"
+          :class="{
+            'border-green-500 ring-2 ring-green-400': answerState === 'correct',
+            'border-red-500 ring-2 ring-red-400': answerState === 'wrong'
+          }"
+          class="flex-1 border rounded px-3 py-2 transition"
           placeholder="Jawaban..."
         >
         <button
@@ -95,7 +99,7 @@
     <template x-for="s in stickers" :key="s.id">
       <button
         @click="sendSticker(s)"
-        :disabled="stickerCooldown"
+        :disabled="stickerCooldown || roomStatus === 'finished'"
         class="text-2xl transition transform
                hover:scale-125 active:scale-95
                disabled:opacity-40"
@@ -139,6 +143,7 @@ function multiplayerGame(roomCode){
 
     roomStatus: null,
 
+    answerState: null, // 'correct' | 'wrong'
 
     players: [],
     currentTurnId: null,
@@ -172,6 +177,7 @@ function multiplayerGame(roomCode){
     },
 
     fetchState(){
+      if (this.roomStatus === 'finished') return;
   fetch(`/multiplayer/game-state/${this.roomCode}`, {
     credentials: 'same-origin'
   })
@@ -215,13 +221,12 @@ function multiplayerGame(roomCode){
       return r.json();
     })
     .then(res => {
-      if (res.correct) {
-        console.log('Jawaban benar');
-      } else {
-        console.log('Jawaban salah');
-      }
+      this.answerState = res.correct ? 'correct' : 'wrong';
+      setTimeout(() => {
+      this.answerState = null;
       this.answer = '';
-      this.fetchState(); // skor & turn update DI SINI
+      this.fetchState();
+    }, 800); // skor & turn update DI SINI
     })
     .catch(err => {
       console.warn(err.message);

@@ -61,20 +61,22 @@
 
       <!-- ANSWER SLOTS -->
       <div class="flex justify-center gap-1 mb-3">
-        <template x-for="i in answerSlots" :key="i">
-          <div
-  class="w-9 h-9 border rounded flex items-center justify-center font-bold transition"
-  :class="revealedAnswer ? 'bg-green-100 border-green-500 text-green-700' : 'bg-gray-100'"
->
-  <span
-    x-text="
-      revealedAnswer
-        ? revealedAnswer[i]?.toUpperCase() ?? ''
-        : '?'
-    "
-  ></span>
-</div>
-        </template>
+        <template x-for="(n, i) in answerSlots" :key="i">
+      <div
+        class="w-9 h-9 border rounded flex items-center justify-center font-bold transition"
+        :class="revealedAnswer
+          ? 'bg-green-100 border-green-500 text-green-700'
+          : 'bg-gray-100'"
+      >
+        <span
+          x-text="
+            revealedAnswer
+              ? revealedAnswer[i] ?? ''
+              : '?'
+          "
+        ></span>
+      </div>
+    </template>
       </div>
 
       <!-- INPUT -->

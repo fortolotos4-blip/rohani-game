@@ -294,14 +294,62 @@ class MultiplayerController extends Controller
     ]);
 }
 
+$revealed = null;
+$turnLeft = $room->turn_locked
+    ? 0
+    : max(0, 60 - now()->diffInSeconds($room->turn_started_at));
+
+if ($room->revealed_answer && $room->reveal_until) {
+
+    if (now()->lessThan($room->reveal_until)) {
+
+        $revealed = [
+            'answer' => $room->revealed_answer,
+        ];
+
+    } else {
+
+        // ⏭️ LANJUT SOAL SETELAH REVEAL
+        $questionOrder = json_decode($room->question_order, true) ?? [];
+        $nextIndex = $room->current_question_index + 1;
+
+        if ($nextIndex >= count($questionOrder)) {
+            DB::table('multiplayer_rooms')
+                ->where('id', $room->id)
+                ->update([
+                    'status'          => 'finished',
+                    'revealed_answer' => null,
+                    'reveal_until'    => null,
+                ]);
+        } else {
+            DB::table('multiplayer_rooms')
+                ->where('id', $room->id)
+                ->update([
+                    'current_question_index' => $nextIndex,
+                    'revealed_answer'        => null,
+                    'reveal_until'           => null,
+                    'turn_started_at'        => now(),
+                    'turn_locked'            => false,
+                ]);
+        }
+        $room = DB::table('multiplayer_rooms')->where('id', $room->id)->first();
+        $questionOrder = json_decode($room->question_order, true) ?? [];
+        $qid = $questionOrder[$room->current_question_index] ?? null;
+        $question = $qid ? Question::find($qid) : null;
+
+    }
+}
+
+
     return response()->json([
     'room_status'            => $room->status,
     'session_left'           => $sessionLeft,
+    'reveal' => $revealed,
 
     'players'                => $players,
     'current_turn_player_id' => $room->current_turn_player_id,
     'my_player_id'           => $playerId,
-    'turn_left'              => max(0, 60 - now()->diffInSeconds($room->turn_started_at)),
+    'turn_left'              => $turnLeft,
 
     'question' => $question ? [
         'image'         => '/' . ltrim($question->image_path, '/'),
@@ -341,67 +389,51 @@ class MultiplayerController extends Controller
         return response()->json(['error' => 'Game finished'], 403);
     }
 
+    // ⛔ BUKAN GILIRAN / TURN TERKUNCI
     if ($room->current_turn_player_id !== $playerId || $room->turn_locked) {
         DB::rollBack();
         return response()->json(['error' => 'Not your turn'], 403);
     }
 
-    DB::table('multiplayer_rooms')
-        ->where('id', $room->id)
-        ->update(['turn_locked' => true]);
-
     $questionOrder = json_decode($room->question_order, true) ?? [];
     $currentIndex  = (int) $room->current_question_index;
-    $totalQuestions = count($questionOrder);
 
     $qid = $questionOrder[$currentIndex] ?? null;
     $question = $qid ? Question::find($qid) : null;
 
-    $correct = $question &&
+    if (!$question) {
+        DB::rollBack();
+        return response()->json(['error' => 'Question not found'], 404);
+    }
+
+    $correct =
         $this->normalize($request->answer) ===
         $this->normalize($question->answer_text);
 
     if ($correct) {
+
+        // 🔒 LOCK TURN + SET REVEAL
+        DB::table('multiplayer_rooms')
+            ->where('id', $room->id)
+            ->update([
+                'turn_locked'     => true,
+                'revealed_answer' => $question->answer_text,
+                'reveal_until'    => now()->addSeconds(2),
+            ]);
+
         DB::table('multiplayer_room_players')
             ->where('id', $playerId)
             ->increment('score');
 
-        $nextIndex = $currentIndex + 1;
-
-        // 🏁 SOAL HABIS → FINISH
-        if ($nextIndex >= $totalQuestions) {
-            DB::table('multiplayer_rooms')
-                ->where('id', $room->id)
-                ->update([
-                    'current_question_index' => $nextIndex,
-                    'status' => 'finished',
-                    'turn_locked' => true,
-                ]);
-
-            DB::commit();
-            return response()->json([
-                'correct' => true,
-                'finished' => true,
-            ]);
-        }
-
-        // ➡️ LANJUT SOAL
-        DB::table('multiplayer_rooms')
-            ->where('id', $room->id)
-            ->update([
-                'current_question_index' => $nextIndex,
-                'turn_started_at' => now(),
-                'turn_locked' => false,
-            ]);
-
         DB::commit();
+
         return response()->json([
-            'correct' => true,
+            'correct'  => true,
             'finished' => false,
         ]);
     }
 
-    // ❌ SALAH → PINDAH GILIRAN
+    // ❌ SALAH → PINDAH GILIRAN (TANPA REVEAL)
     $currentOrder = DB::table('multiplayer_room_players')
         ->where('id', $playerId)
         ->value('turn_order');
@@ -420,18 +452,17 @@ class MultiplayerController extends Controller
         ->where('id', $room->id)
         ->update([
             'current_turn_player_id' => $nextPlayer->id,
-            'turn_started_at' => now(),
-            'turn_locked' => false,
+            'turn_started_at'        => now(),
+            'turn_locked'            => false,
         ]);
 
     DB::commit();
 
     return response()->json([
-        'correct' => false,
+        'correct'  => false,
         'finished' => false,
     ]);
 }
-
 
     /* =========================================================
      * STICKER

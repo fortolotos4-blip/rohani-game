@@ -62,7 +62,18 @@
       <!-- ANSWER SLOTS -->
       <div class="flex justify-center gap-1 mb-3">
         <template x-for="i in answerSlots" :key="i">
-          <div class="w-9 h-9 border rounded flex items-center justify-center font-bold bg-gray-100">?</div>
+          <div
+  class="w-9 h-9 border rounded flex items-center justify-center font-bold transition"
+  :class="revealedAnswer ? 'bg-green-100 border-green-500 text-green-700' : 'bg-gray-100'"
+>
+  <span
+    x-text="
+      revealedAnswer
+        ? revealedAnswer[i]?.toUpperCase() ?? ''
+        : '?'
+    "
+  ></span>
+</div>
         </template>
       </div>
 
@@ -70,7 +81,7 @@
       <div class="flex gap-2 flex-col sm:flex-row">
         <input
           x-model="answer"
-          :disabled="!isMyTurn || submitting || roomStatus === 'finished'"
+          :disabled="!isMyTurn || submitting || roomStatus === 'finished' || revealedAnswer"
           :class="{
             'border-green-500 ring-2 ring-green-400': answerState === 'correct',
             'border-red-500 ring-2 ring-red-400': answerState === 'wrong'
@@ -140,6 +151,8 @@ function multiplayerGame(roomCode){
   return {
     roomCode,
 
+    revealedAnswer: null,
+
     roomStatus: null,
 
     answerState: null, // 'correct' | 'wrong'
@@ -189,10 +202,13 @@ function multiplayerGame(roomCode){
     this.currentTurnId = d.current_turn_player_id;
     this.myPlayerId = d.my_player_id;
     this.question = d.question;
+    this.revealedAnswer = d.reveal?.answer ?? null;
     this.turnLeft = d.turn_left ?? 0;
     this.sessionLeft = d.session_left ?? 0;
     this.roomStatus = d.room_status;
     this.stickersLive = d.stickers ?? [];
+    this.revealedAnswer = d.reveal?.answer || null;
+
 
     // ⛔ hentikan polling SETELAH status finished diterima
     if (this.roomStatus === 'finished') {

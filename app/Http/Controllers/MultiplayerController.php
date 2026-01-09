@@ -412,13 +412,17 @@ if ($room->revealed_answer && $room->reveal_until) {
 
     if ($correct) {
 
+        $cleanAnswer = strtoupper(
+        preg_replace('/[^A-Z0-9]/i', '', $question->answer_text)
+        );
+
         // 🔒 LOCK TURN + SET REVEAL
         DB::table('multiplayer_rooms')
             ->where('id', $room->id)
             ->update([
                 'turn_locked'     => true,
-                'revealed_answer' => $question->answer_text,
-                'reveal_until'    => now()->addSeconds(2),
+                'revealed_answer' => $cleanAnswer,
+                'reveal_until'    => now()->addSeconds(4),
             ]);
 
         DB::table('multiplayer_room_players')

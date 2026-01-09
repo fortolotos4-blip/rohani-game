@@ -422,7 +422,7 @@ if ($room->revealed_answer && $room->reveal_until) {
             ->update([
                 'turn_locked'     => true,
                 'revealed_answer' => $cleanAnswer,
-                'reveal_until'    => now()->addSeconds(4),
+                'reveal_until'    => now()->addSeconds(3),
             ]);
 
         DB::table('multiplayer_room_players')

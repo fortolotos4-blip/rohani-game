@@ -70,7 +70,7 @@
       <div class="flex gap-2 flex-col sm:flex-row">
         <input
           x-model="answer"
-          :disabled="!isMyTurn || submitting"
+          :disabled="!isMyTurn || submitting || roomStatus === 'finished'"
           :class="{
             'border-green-500 ring-2 ring-green-400': answerState === 'correct',
             'border-red-500 ring-2 ring-red-400': answerState === 'wrong'
@@ -171,13 +171,12 @@ function multiplayerGame(roomCode){
 
     init(){
       this.fetchState();
-      setInterval(() => {
-      if (!this.submitting) this.fetchState();
+      this._poller = setInterval(() => {
+      this.fetchState();
     }, 3000);
     },
 
     fetchState(){
-      if (this.roomStatus === 'finished') return;
   fetch(`/multiplayer/game-state/${this.roomCode}`, {
     credentials: 'same-origin'
   })
@@ -195,6 +194,11 @@ function multiplayerGame(roomCode){
     this.sessionLeft = d.session_left ?? 0;
     this.roomStatus = d.room_status;
     this.stickersLive = d.stickers ?? [];
+
+    // ⛔ hentikan polling SETELAH status finished diterima
+    if (this.roomStatus === 'finished') {
+      clearInterval(this._poller);
+    }
   })
   .catch(() => console.warn('Polling failed'));
 },

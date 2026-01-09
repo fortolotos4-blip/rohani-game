@@ -91,7 +91,7 @@
         >
         <button
           @click="submit"
-          :disabled="!isMyTurn || submitting"
+          :disabled="!isMyTurn || submitting || revealedAnswer"
           class="w-full sm:w-auto border border-indigo-600
                  text-indigo-600 font-semibold rounded px-4 py-2">
           Kirim
@@ -207,8 +207,6 @@ function multiplayerGame(roomCode){
     this.sessionLeft = d.session_left ?? 0;
     this.roomStatus = d.room_status;
     this.stickersLive = d.stickers ?? [];
-    this.revealedAnswer = d.reveal?.answer || null;
-
 
     // ⛔ hentikan polling SETELAH status finished diterima
     if (this.roomStatus === 'finished') {

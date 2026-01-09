@@ -172,28 +172,25 @@ function multiplayerGame(roomCode){
     },
 
     fetchState(){
-  fetch(`/multiplayer/game-state/${this.roomCode}`)
-    .then(r => {
-      if (!r.ok) throw new Error('Network error');
-      return r.json();
-    })
-    .then(d => {
-      this.players = d.players ?? [];
-      this.currentTurnId = d.current_turn_player_id;
-      this.myPlayerId = d.my_player_id;
-
-      this.question = d.question;
-      this.turnLeft = d.turn_left ?? 0;
-      this.sessionLeft = d.session_left ?? 0;
-
-      this.roomStatus = d.room_status;
-
-      // ✅ BIARKAN SERVER YANG MENGATUR WAKTU STICKER
-      this.stickersLive = d.stickers ?? [];
-    })
-    .catch(() => {
-      console.warn('Polling failed');
-    });
+  fetch(`/multiplayer/game-state/${this.roomCode}`, {
+    credentials: 'same-origin'
+  })
+  .then(r => {
+    if (!r.ok) throw new Error('Network error');
+    return r.json();
+  
+  })
+  .then(d => {
+    this.players = d.players ?? [];
+    this.currentTurnId = d.current_turn_player_id;
+    this.myPlayerId = d.my_player_id;
+    this.question = d.question;
+    this.turnLeft = d.turn_left ?? 0;
+    this.sessionLeft = d.session_left ?? 0;
+    this.roomStatus = d.room_status;
+    this.stickersLive = d.stickers ?? [];
+  })
+  .catch(() => console.warn('Polling failed'));
 },
 
     submit(){
@@ -202,16 +199,17 @@ function multiplayerGame(roomCode){
     this.submitting = true;
 
     fetch('/multiplayer/answer', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-CSRF-TOKEN': '{{ csrf_token() }}'
-      },
-      body: JSON.stringify({
-        room_code: this.roomCode,
-        answer: this.answer
-      })
+    method: 'POST',
+    credentials: 'same-origin', // ✅ WAJIB
+    headers: {
+      'Content-Type': 'application/json',
+      'X-CSRF-TOKEN': '{{ csrf_token() }}'
+    },
+    body: JSON.stringify({
+      room_code: this.roomCode,
+      answer: this.answer
     })
+  })
     .then(r => {
       if (!r.ok) throw new Error('Submit failed');
       return r.json();

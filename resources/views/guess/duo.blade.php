@@ -114,7 +114,7 @@
     </div>
 
     <!-- INPUT -->
-    <div class="w-full flex justify-center overflow-hidden mb-4">
+    <div class="w-full flex justify-center overflow-x-hidden mb-4">
   <div
     x-ref="slotContainer"
     class="flex items-center justify-center gap-1 transition-transform"
@@ -192,19 +192,25 @@ function guessDuo(){
     },
 
     get slotContainerStyle(){
-  const count = this.slots.length;
-  const slotSize = parseInt(this.slotStyle.match(/width:(\d+)/)[1]);
-  const totalWidth = count * slotSize + count * 4; // gap
+    const count = this.slots.length;
+    const gap = 4; // px (gap-1)
+    const slotSize = parseInt(this.slotStyle.match(/width:(\d+)/)[1]);
 
-  const maxWidth = Math.min(window.innerWidth - 32, 420);
+    const totalWidth =
+      count * slotSize + (count - 1) * gap;
 
-  if(totalWidth > maxWidth){
-    const scale = maxWidth / totalWidth;
-    return `transform: scale(${scale}); transform-origin: center;`;
-  }
+    const maxWidth = Math.min(window.innerWidth - 32, 420);
 
-  return '';
-},
+    if (totalWidth > maxWidth) {
+      const scale = maxWidth / totalWidth;
+      return `
+        transform: scale(${scale});
+        transform-origin: center;
+      `;
+    }
+
+    return '';
+  },
 
     start(){
       this.showRules = false;
@@ -350,15 +356,23 @@ function guessDuo(){
   }
 },
 
-    get slotStyle(){
-      const c=this.slots.length;
-      let s=42;
-      if(c>=8) s=36;
-      if(c>=10) s=32;
-      if(c>=12) s=28;
-      if(c>=15) s=24;
-      return `width:${s}px;height:${s}px;font-size:${Math.max(14,s*0.45)}px`;
-    },
+  get slotStyle(){
+  const count = this.slots.length;
+
+  let size = 42;
+  if (count >= 8)  size = 36;
+  if (count >= 10) size = 32;
+  if (count >= 12) size = 28;
+  if (count >= 15) size = 24;
+
+  return `
+    width:${size}px;
+    height:${size}px;
+    min-width:${size}px;
+    min-height:${size}px;
+    font-size:${Math.max(14, size * 0.45)}px;
+  `;
+},
 
     get bluePercent(){
       const t=this.score.A+this.score.B;

@@ -318,103 +318,120 @@ class MultiplayerController extends Controller
      * ANSWER
      * =======================================================*/
     public function submitAnswer(Request $request)
-    {
-        $request->validate([
-            'room_code' => 'required',
-            'answer'    => 'required|string',
-        ]);
+{
+    $request->validate([
+        'room_code' => 'required',
+        'answer'    => 'required|string',
+    ]);
 
-        $playerId = session('multiplayer_player_id');
-        if (!$playerId) {
-            return response()->json(['error' => 'Invalid player'], 403);
+    $playerId = session('multiplayer_player_id');
+    if (!$playerId) {
+        return response()->json(['error' => 'Invalid player'], 403);
+    }
+
+    DB::beginTransaction();
+
+    $room = DB::table('multiplayer_rooms')
+        ->where('room_code', $request->room_code)
+        ->lockForUpdate()
+        ->first();
+
+    if (!$room || $room->status === 'finished') {
+        DB::rollBack();
+        return response()->json(['error' => 'Game finished'], 403);
+    }
+
+    if ($room->current_turn_player_id !== $playerId || $room->turn_locked) {
+        DB::rollBack();
+        return response()->json(['error' => 'Not your turn'], 403);
+    }
+
+    DB::table('multiplayer_rooms')
+        ->where('id', $room->id)
+        ->update(['turn_locked' => true]);
+
+    $questionOrder = json_decode($room->question_order, true) ?? [];
+    $currentIndex  = (int) $room->current_question_index;
+    $totalQuestions = count($questionOrder);
+
+    $qid = $questionOrder[$currentIndex] ?? null;
+    $question = $qid ? Question::find($qid) : null;
+
+    $correct = $question &&
+        $this->normalize($request->answer) ===
+        $this->normalize($question->answer_text);
+
+    if ($correct) {
+        DB::table('multiplayer_room_players')
+            ->where('id', $playerId)
+            ->increment('score');
+
+        $nextIndex = $currentIndex + 1;
+
+        // 🏁 SOAL HABIS → FINISH
+        if ($nextIndex >= $totalQuestions) {
+            DB::table('multiplayer_rooms')
+                ->where('id', $room->id)
+                ->update([
+                    'current_question_index' => $nextIndex,
+                    'status' => 'finished',
+                    'turn_locked' => true,
+                ]);
+
+            DB::commit();
+            return response()->json([
+                'correct' => true,
+                'finished' => true,
+            ]);
         }
 
-        DB::beginTransaction();
-
-        $room = DB::table('multiplayer_rooms')
-            ->where('room_code', $request->room_code)
-            ->lockForUpdate()
-            ->first();
-
-        if (!$room) {
-            DB::rollBack();
-            return response()->json(['error' => 'Room not found'], 404);
-        }
-
-        $elapsed = now()->diffInSeconds($room->turn_started_at);
-        if ($elapsed >= 60) {
-            DB::rollBack();
-            return response()->json(['error' => 'Turn expired'], 403);
-        }
-
-        if ($room->current_turn_player_id !== $playerId || $room->turn_locked) {
-            DB::rollBack();
-            return response()->json(['error' => 'Not your turn'], 403);
-        }
-
+        // ➡️ LANJUT SOAL
         DB::table('multiplayer_rooms')
             ->where('id', $room->id)
-            ->update(['turn_locked' => true]);
-
-        $questionOrder = json_decode($room->question_order, true);
-
-        $qid = is_array($questionOrder)
-            ? ($questionOrder[$room->current_question_index] ?? null)
-            : null;
-
-        $question = $qid ? Question::find($qid) : null;
-
-
-        $correct = $question &&
-            $this->normalize($request->answer) ===
-            $this->normalize($question->answer_text);
-
-        if ($correct) {
-            DB::table('multiplayer_room_players')
-                ->where('id', $playerId)
-                ->increment('score');
-
-            DB::table('multiplayer_rooms')
-                ->where('id', $room->id)
-                ->increment('current_question_index');
-        }
-
-        if (!$correct) {
-            $currentOrder = DB::table('multiplayer_room_players')
-                ->where('id', $playerId)
-                ->value('turn_order');
-
-            $nextPlayer = DB::table('multiplayer_room_players')
-                ->where('room_id', $room->id)
-                ->where('turn_order', '>', $currentOrder)
-                ->orderBy('turn_order')
-                ->first()
-                ?? DB::table('multiplayer_room_players')
-                    ->where('room_id', $room->id)
-                    ->orderBy('turn_order')
-                    ->first();
-
-            DB::table('multiplayer_rooms')
-                ->where('id', $room->id)
-                ->update([
-                    'current_turn_player_id' => $nextPlayer->id,
-                    'turn_started_at'        => now(),
-                    'turn_locked'            => false,
-                ]);
-        } else {
-            // ✅ BENAR → tetap giliran pemain ini
-            DB::table('multiplayer_rooms')
-                ->where('id', $room->id)
-                ->update([
-                    'turn_started_at' => now(),
-                    'turn_locked'     => false,
-                ]);
-        }
+            ->update([
+                'current_question_index' => $nextIndex,
+                'turn_started_at' => now(),
+                'turn_locked' => false,
+            ]);
 
         DB::commit();
-
-        return response()->json(['correct' => $correct]);
+        return response()->json([
+            'correct' => true,
+            'finished' => false,
+        ]);
     }
+
+    // ❌ SALAH → PINDAH GILIRAN
+    $currentOrder = DB::table('multiplayer_room_players')
+        ->where('id', $playerId)
+        ->value('turn_order');
+
+    $nextPlayer = DB::table('multiplayer_room_players')
+        ->where('room_id', $room->id)
+        ->where('turn_order', '>', $currentOrder)
+        ->orderBy('turn_order')
+        ->first()
+        ?? DB::table('multiplayer_room_players')
+            ->where('room_id', $room->id)
+            ->orderBy('turn_order')
+            ->first();
+
+    DB::table('multiplayer_rooms')
+        ->where('id', $room->id)
+        ->update([
+            'current_turn_player_id' => $nextPlayer->id,
+            'turn_started_at' => now(),
+            'turn_locked' => false,
+        ]);
+
+    DB::commit();
+
+    return response()->json([
+        'correct' => false,
+        'finished' => false,
+    ]);
+}
+
 
     /* =========================================================
      * STICKER

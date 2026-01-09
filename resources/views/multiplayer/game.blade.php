@@ -109,8 +109,6 @@
     </template>
   </div>
 
-</div> <!-- ✅ x-data DITUTUP PALING AKHIR -->
-
 <!-- GAME FINISHED POPUP -->
 <template x-if="roomStatus === 'finished'">
   <div class="fixed inset-0 bg-black/60 flex items-center justify-center z-50">
@@ -135,6 +133,7 @@
   </div>
 </template>
 
+</div> <!-- ✅ x-data DITUTUP PALING AKHIR -->
 
 <script>
 function multiplayerGame(roomCode){
@@ -198,6 +197,7 @@ function multiplayerGame(roomCode){
     // ⛔ hentikan polling SETELAH status finished diterima
     if (this.roomStatus === 'finished') {
       clearInterval(this._poller);
+      this._poller = null;
     }
   })
   .catch(() => console.warn('Polling failed'));

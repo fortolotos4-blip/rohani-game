@@ -114,7 +114,7 @@
     </div>
 
     <!-- INPUT -->
-    <div class="w-full flex justify-center overflow-x-hidden mb-4">
+    <div class="w-full flex justify-center mb-4">
   <div
     x-ref="slotContainer"
     class="flex items-center justify-center gap-1 transition-transform"
@@ -193,11 +193,13 @@ function guessDuo(){
 
     get slotContainerStyle(){
     const count = this.slots.length;
-    const gap = 4; // px (gap-1)
-    const slotSize = parseInt(this.slotStyle.match(/width:(\d+)/)[1]);
+
+    const gap = 4; // mx-[2px]
+    const sizeMatch = this.slotStyle.match(/width:(\d+)/);
+    const slotSize = sizeMatch ? parseInt(sizeMatch[1]) : 42;
 
     const totalWidth =
-      count * slotSize + (count - 1) * gap;
+      count * slotSize + count * gap * 2;
 
     const maxWidth = Math.min(window.innerWidth - 32, 420);
 

@@ -9,117 +9,104 @@
 >
 
   <!-- PLAYER POSITIONS -->
-<div class="relative h-[520px]">
-
-  <template x-for="(p, i) in players" :key="p.id">
-    <div
-      class="player-card relative"
-      :class="[
-        p.id === currentTurnId ? 'active-turn' : '',
-        positionClass(i),
-        colorClass(p.color)
-      ]"
-    >
-
-      <!-- ISI CARD -->
-      <div class="flex justify-between items-center">
-
-        <!-- NAMA & SKOR -->
-        <div>
-          <div class="font-bold text-sm" x-text="p.player_name"></div>
-          <div class="text-xs">
-            Skor: <span x-text="p.score"></span>
+  <div class="relative h-[520px]">
+    <template x-for="(p, i) in players" :key="p.id">
+      <div
+        class="player-card relative"
+        :class="[
+          p.id === currentTurnId ? 'active-turn' : '',
+          positionClass(i),
+          colorClass(p.color)
+        ]"
+      >
+        <div class="flex justify-between items-center">
+          <div>
+            <div class="font-bold text-sm" x-text="p.player_name"></div>
+            <div class="text-xs">Skor: <span x-text="p.score"></span></div>
           </div>
-        </div>
 
-        <!-- STICKER (DI DALAM KOTAK MERAH) -->
-        <template x-if="playerSticker(p.id)">
-          <div
-            :class="[
-      'inline-flex items-center justify-center w-8 h-8 rounded-full bg-gray-100 text-lg',
-      'sticker-animate',
-      isStickerExpiring(playerStickerObj(p.id)) ? 'sticker-fade' : ''
-    ]"
-          >
-            <span x-text="playerSticker(p.id)"></span>
-          </div>
-        </template>
-
-      </div>
-
-    </div>
-  </template>
-
-</div>
-
-
-    <!-- CENTER GAME -->
-    <div class="absolute inset-0 flex items-center justify-center pointer-events-none">
-      <div class="bg-white rounded-lg shadow p-4 w-full max-w-md pointer-events-auto">
-
-        <!-- TIMERS -->
-        <div class="flex justify-between text-xs font-semibold mb-2">
-          <div>⏳ Game: <span x-text="sessionLeft"></span>s</div>
-          <div :class="turnLeft <= 5 ? 'text-red-600 animate-pulse' : ''">
-            🎯 Giliran: <span x-text="turnLeft"></span>s
-          </div>
-        </div>
-
-        <!-- IMAGE -->
-        <div class="flex justify-center mb-4" x-show="question">
-          <img :src="imageSrc" class="max-h-[240px] object-contain rounded">
-        </div>
-
-        <!-- ANSWER SLOTS -->
-        <div class="flex justify-center gap-1 mb-3">
-          <template x-for="i in answerSlots" :key="i">
-            <div class="w-9 h-9 border rounded flex items-center justify-center font-bold bg-gray-100">
-              ?
+          <!-- STICKER DI CARD -->
+          <template x-if="playerSticker(p.id)">
+            <div
+              :class="[
+                'inline-flex items-center justify-center w-8 h-8 rounded-full bg-gray-100 text-lg',
+                'sticker-animate',
+                isStickerExpiring(playerStickerObj(p.id)) ? 'sticker-fade' : ''
+              ]"
+            >
+              <span x-text="playerSticker(p.id)"></span>
             </div>
           </template>
         </div>
-
-        <!-- INPUT -->
-        <div class="flex gap-2 flex-col sm:flex-row">
-          <input
-            x-model="answer"
-            :disabled="!isMyTurn || submitting"
-            class="flex-1 border rounded px-3 py-2"
-            placeholder="Jawaban..."
-          >
-          <button
-            @click="submit"
-            :disabled="!isMyTurn || submitting"
-            class="w-full sm:w-auto border border-indigo-600
-         text-indigo-600 font-semibold rounded px-4 py-2">
-            Kirim
-          </button>
-        </div>
-
       </div>
+    </template>
+  </div>
+
+  <!-- CENTER GAME -->
+  <div class="absolute inset-0 flex items-center justify-center pointer-events-none">
+    <div class="bg-white rounded-lg shadow p-4 w-full max-w-md pointer-events-auto">
+
+      <!-- TIMERS -->
+      <div class="flex justify-between text-xs font-semibold mb-2">
+        <div>⏳ Game: <span x-text="sessionLeft"></span>s</div>
+        <div :class="turnLeft <= 5 ? 'text-red-600 animate-pulse' : ''">
+          🎯 Giliran: <span x-text="turnLeft"></span>s
+        </div>
+      </div>
+
+      <!-- IMAGE -->
+      <div class="flex justify-center mb-4" x-show="question">
+        <img :src="imageSrc" class="max-h-[240px] object-contain rounded">
+      </div>
+
+      <!-- ANSWER SLOTS -->
+      <div class="flex justify-center gap-1 mb-3">
+        <template x-for="i in answerSlots" :key="i">
+          <div class="w-9 h-9 border rounded flex items-center justify-center font-bold bg-gray-100">?</div>
+        </template>
+      </div>
+
+      <!-- INPUT -->
+      <div class="flex gap-2 flex-col sm:flex-row">
+        <input
+          x-model="answer"
+          :disabled="!isMyTurn || submitting"
+          class="flex-1 border rounded px-3 py-2"
+          placeholder="Jawaban..."
+        >
+        <button
+          @click="submit"
+          :disabled="!isMyTurn || submitting"
+          class="w-full sm:w-auto border border-indigo-600
+                 text-indigo-600 font-semibold rounded px-4 py-2">
+          Kirim
+        </button>
+      </div>
+
     </div>
   </div>
 
-  <!-- STICKER BAR (FIXED – SELALU TERLIHAT) -->
-<div class="fixed bottom-6 left-1/2 -translate-x-1/2
-            bg-white rounded-xl shadow-lg
-            px-4 py-2 flex gap-3 z-50">
+  <!-- ✅ STICKER BAR (MASIH DALAM x-data) -->
+  <div
+    class="fixed bottom-6 left-1/2 -translate-x-1/2
+           bg-white rounded-xl shadow-lg
+           px-4 py-2 flex gap-3 z-50"
+  >
+    <template x-for="s in stickers" :key="s.id">
+      <button
+        @click="sendSticker(s)"
+        :disabled="stickerCooldown"
+        class="text-2xl transition transform
+               hover:scale-125 active:scale-95
+               disabled:opacity-40"
+      >
+        <span x-text="s.emoji"></span>
+      </button>
+    </template>
+  </div>
 
-  <template x-for="s in stickers" :key="s.id">
-    <button
-      @click="sendSticker(s)"
-      :disabled="stickerCooldown"
-      class="text-2xl transition transform
-             hover:scale-125 active:scale-95
-             disabled:opacity-40"
-    >
-      <span x-text="s.emoji"></span>
-    </button>
-  </template>
+</div> <!-- ✅ x-data DITUTUP PALING AKHIR -->
 
-</div>
-
-</div>
 <!-- GAME FINISHED POPUP -->
 <template x-if="roomStatus === 'finished'">
   <div class="fixed inset-0 bg-black/60 flex items-center justify-center z-50">

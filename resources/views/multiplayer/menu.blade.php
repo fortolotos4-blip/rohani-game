@@ -98,9 +98,8 @@ function createRoomForm(){
       })
       .then(r => r.json())
       .then(d => {
-        if(d.room_code){
-          window.location.href =
-            `/multiplayer/lobby/${d.room_code}`;
+        if (d.room_code) {
+          window.location.href = `/multiplayer/lobby/${d.room_code}`;
         }
       });
     }
@@ -128,26 +127,14 @@ function joinRoomForm(){
           room_code: this.room_code.toUpperCase()
         })
       })
-      .then(async r => {
-        if (!r.ok) {
-          const text = await r.text();
-          throw new Error(text);
-        }
-        return r.json();
-      })
+      .then(r => r.json())
       .then(d => {
         if (d.success) {
           window.location.href =
             `/multiplayer/lobby/${this.room_code.toUpperCase()}`;
         }
       })
-      .catch(err => {
-        console.error('Join room failed:', err);
-        alert('Gagal gabung room. Coba lagi.');
-      })
-      .finally(() => {
-        this.loading = false;
-      });
+      .finally(() => this.loading = false);
     }
   }
 }

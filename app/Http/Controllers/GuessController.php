@@ -12,7 +12,6 @@ class GuessController extends Controller
     {
         return view('guess.menu');
     }
-
     // Single mode: pick N random questions and send to view
     public function single()
 {
